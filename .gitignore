@@ -1,0 +1,9 @@
+node_modules/
+.output/
+dist/
+*.log
+.env
+credentials.env
+projeto.zip
+zapiacrm-v1.tar.gz
+*.tar.gz
