@@ -1,0 +1,80 @@
+# =============================================================================
+# ZAPIACRM - Docker Compose (versao final)
+# Evolucao: usa credenciais centralizadas via .env (nao commit secrets)
+# Cliente so precisa do IP/dominio
+# =============================================================================
+
+services:
+  # ===== BANCO DE DADOS =====
+  postgres:
+    image: postgres:15-alpine
+    container_name: ${PROJECT_NAME:-zapiacrm}-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-zapiacrm}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-zapiacrm}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - zapiacrm_net
+
+  # ===== APLICACAO ZAPIACRM =====
+  zapiacrm:
+    image: jeffersoncharles1007-lang/zapiacrm-app:latest
+    container_name: ${PROJECT_NAME:-zapiacrm}-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Banco
+      DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-zapiacrm}
+
+      # Supabase local
+      SUPABASE_URL: ${SUPABASE_URL:-http://localhost:4000}
+      SUPABASE_PROJECT_ID: ${SUPABASE_PROJECT_ID:-internal}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      VITE_SUPABASE_URL: ${SUPABASE_URL:-http://localhost:4000}
+      VITE_SUPABASE_PROJECT_ID: ${SUPABASE_PROJECT_ID:-internal}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
+
+      # Google OAuth (via .env)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+
+      # IA - chaves opcionais (cliente configura depois pelo painel)
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      VITE_GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+      # Evolution API central (via .env)
+      EVOLUTION_API_URL: ${EVOLUTION_API_URL}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      VITE_EVOLUTION_API_URL: ${EVOLUTION_API_URL}
+
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4000
+    ports:
+      - "${APP_PORT:-4000}:4000"
+    networks:
+      - zapiacrm_net
+
+volumes:
+  postgres_data:
+    name: ${PROJECT_NAME:-zapiacrm}_postgres_data
+
+networks:
+  zapiacrm_net:
+    name: ${PROJECT_NAME:-zapiacrm}_network
+    driver: bridge

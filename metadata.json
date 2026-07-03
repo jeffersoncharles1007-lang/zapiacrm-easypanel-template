@@ -1,0 +1,70 @@
+{
+  "name": "ZAPIACRM",
+  "version": "1.0.0",
+  "description": "CRM completo com WhatsApp e IA. Pronto para revender como SaaS.",
+  "category": "business",
+  "tags": ["crm", "whatsapp", "ai", "saas", "automation"],
+  "logo": "https://raw.githubusercontent.com/jeffersoncharles1007-lang/zapiacrm-release/main/logo.png",
+  "screenshots": [],
+  "author": {
+    "name": "ZAPIACRM",
+    "email": "suporte@zapiacrm.com.br",
+    "website": "https://zapiacrm.com.br"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jeffersoncharles1007-lang/zapiacrm-release"
+  },
+  "documentation": "https://github.com/jeffersoncharles1007-lang/zapiacrm-release/blob/main/README.md",
+  "features": [
+    "WhatsApp com IA (Gemini, GPT, Claude)",
+    "CRM Kanban com estagios customizaveis",
+    "Multi-tenant (cada agencia isolada)",
+    "Sistema de assinatura (Starter/Pro/Business)",
+    "Evolution API integrada",
+    "Backup automatico via Easypanel",
+    "Painel admin master",
+    "Pronto para revenda SaaS"
+  ],
+  "requirements": {
+    "memory": "1024MB",
+    "disk": "2GB",
+    "ports": [4000, 8080]
+  },
+  "ports": [
+    {
+      "name": "App",
+      "port": 4000,
+      "description": "Interface web do ZAPIACRM"
+    },
+    {
+      "name": "Evolution",
+      "port": 8080,
+      "description": "API do WhatsApp (Evolution)"
+    }
+  ],
+  "environmentVariables": [
+    {
+      "key": "POSTGRES_PASSWORD",
+      "label": "Senha do Banco",
+      "type": "password",
+      "default": "zapiacrm2026",
+      "required": true
+    },
+    {
+      "key": "GOOGLE_API_KEY",
+      "label": "Google Gemini API Key",
+      "type": "string",
+      "default": "",
+      "required": false,
+      "help": "Pegue em https://makersuite.google.com/app/apikey"
+    },
+    {
+      "key": "EVOLUTION_API_KEY",
+      "label": "Evolution API Key",
+      "type": "password",
+      "default": "zapiacrm-evolution-2026",
+      "required": true
+    }
+  ]
+}
