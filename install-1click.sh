@@ -52,9 +52,24 @@ if ! command -v git &> /dev/null; then
   echo -e "${GREEN}  ✓ git instalado${NC}"
 fi
 
-# ===== 2. Baixar credenciais centralizadas =====
+# ===== 2. Limpar instalacao anterior (se existir) =====
 echo ""
-echo -e "${BLUE}[2/5] Baixando credenciais centralizadas...${NC}"
+echo -e "${BLUE}[2/5] Limpando instalacoes anteriores (se houver)...${NC}"
+if [ -d "$INSTALL_DIR" ]; then
+  cd "$INSTALL_DIR"
+  if command -v docker &> /dev/null; then
+    docker compose down -v 2>/dev/null || true
+  fi
+  cd /root
+  rm -rf "$INSTALL_DIR"
+  echo -e "${GREEN}  ✓ Instalacao anterior removida${NC}"
+else
+  echo -e "${GREEN}  ✓ Nenhuma instalacao anterior${NC}"
+fi
+
+# ===== 3. Baixar credenciais centralizadas =====
+echo ""
+echo -e "${BLUE}[3/5] Baixando credenciais centralizadas...${NC}"
 TMP_CREDS=$(mktemp)
 curl -fsSL "$CREDENTIALS_URL" -o "$TMP_CREDS" 2>/dev/null || {
   echo -e "${RED}  ✗ Erro ao baixar credenciais${NC}"
