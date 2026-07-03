@@ -88,7 +88,7 @@ echo -n -e "${YELLOW}→ ${NC}"
 read -r DOMAIN
 
 # Gerar senhas aleatorias para o banco
-DB_PASSWORD=$(openssl rand -hex 16)
+DB_PASSWORD="zapiacrm2026"
 ANON_KEY="local-anon-$(openssl rand -hex 16)"
 SERVICE_KEY="local-service-$(openssl rand -hex 16)"
 
@@ -160,5 +160,11 @@ echo -e "${BLUE}Comandos uteis:${NC}"
 echo "  ${YELLOW}cd /opt/zapiacrm && docker compose logs -f${NC}   # ver logs"
 echo "  ${YELLOW}cd /opt/zapiacrm && docker compose restart${NC}  # reiniciar"
 echo "  ${YELLOW}cd /opt/zapiacrm && docker compose ps${NC}       # ver status"
+echo ""
+echo -e "${BLUE}Credenciais do banco (caso precise):${NC}"
+echo "  Host: postgres (interno) ou localhost (externo)"
+echo "  Database: zapiacrm"
+echo "  User: admin"
+echo "  Password: ${CYAN}zapiacrm2026${NC}"
 echo ""
 echo -e "${GREEN}Sistema funcionando 24/7!${NC}"
