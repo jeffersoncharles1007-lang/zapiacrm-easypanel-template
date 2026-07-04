@@ -133,18 +133,18 @@ EOF
 
 echo -e "${GREEN}  ✓ Configuracao salva${NC}"
 
-# ===== 5. Subir containers =====
+# ===== 5. Subir containers (imagem vem do Docker Hub - build nao necessario) =====
 echo ""
-echo -e "${BLUE}[5/5] Iniciando ZAPIACRM (~5-10 min, nao feche esta janela)...${NC}"
+echo -e "${BLUE}[5/5] Iniciando ZAPIACRM (~1 min, imagem vem do Docker Hub)...${NC}"
 echo "  - Postgres"
 echo "  - Evolution API (WhatsApp)"
 echo "  - ZAPIACRM (app principal)"
 echo ""
-docker compose up -d --build
+docker compose up -d
 
 echo ""
-echo -e "${YELLOW}Aguardando sistema inicializar (~3 min para build)...${NC}"
-for i in {1..60}; do
+echo -e "${YELLOW}Aguardando sistema inicializar (~1 min)...${NC}"
+for i in {1..30}; do
   if curl -s http://localhost:4000 > /dev/null 2>&1; then
     break
   fi

@@ -1,0 +1,39 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Dockerfile'
+      - 'package.json'
+      - 'src/**'
+      - 'sql/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            jeffersoncharles1007-lang/zapiacrm-app:latest
+            jeffersoncharles1007-lang/zapiacrm-app:v1.0
+          cache-froms: |
+            type=gha
+            type=registry,ref=jeffersoncharles1007-lang/zapiacrm-app:buildcache
+          cache-to: type=registry,ref=jeffersoncharles1007-lang/zapiacrm-app:buildcache,mode=max
