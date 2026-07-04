@@ -76,9 +76,10 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       # Evolution API central (credenciais fixas - mesmas para todos)
-      EVOLUTION_API_URL: https://evolution-api-e1au.srv1764448.hstgr.cloud
-      EVOLUTION_API_KEY: jEpxtxy82V61ueUen5AinQWpa6SSNwLF
-      VITE_EVOLUTION_API_URL: https://evolution-api-e1au.srv1764448.hstgr.cloud
+      # Valores vêm do .env — NUNCA hardcode a chave aqui.
+      EVOLUTION_API_URL: ${EVOLUTION_API_URL}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      VITE_EVOLUTION_API_URL: ${EVOLUTION_API_URL}
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 4000

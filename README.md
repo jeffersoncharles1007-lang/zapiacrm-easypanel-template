@@ -1,160 +1,87 @@
-# 🚀 ZAPIACRM - CRM + WhatsApp + IA
+# 🚀 ZAPIACRM — CRM + WhatsApp + IA
 
-**Instale em 2 minutos com 1 comando!**
+Sistema de CRM com WhatsApp (Evolution API) e Inteligência Artificial para automação de vendas.
+Feito para rodar no **Vercel** (aplicação) + **Supabase** (banco/auth), na conta do próprio cliente.
 
-Sistema CRM completo com WhatsApp integrado e inteligência artificial para automação de vendas. Ideal para agências que revendem para clientes finais.
-
----
-
-## ⚡ Instalação Rápida (2 minutos)
-
-### 1️⃣ SSH na VPS
-
-```bash
-ssh root@IP-DA-SUA-VPS
-```
-
-### 2️⃣ Cole este comando:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/jeffersoncharles1007-lang/zapiacrm-easypanel-template/main/install-minimal.sh | bash
-```
-
-### 3️⃣ Aguarde ~2 minutos
-
-O sistema vai:
-- Instalar Docker (se necessário)
-- Baixar imagem do Docker Hub
-- Subir todos os serviços
-- Configurar banco de dados
-
-### 4️⃣ Acesse!
-
-```
-http://localhost:4000
-```
+> **Você é dono do código.** Depois do deploy, pode editar, colocar sua marca e customizar à vontade.
 
 ---
 
-## 🎯 O que está Included
+## ⚡ Colocar no ar (~15 min, sem servidor nem terminal)
 
-| Componente | Descrição |
-|------------|-----------|
-| **CRM Kanban** | Cards, estágios, automações |
-| **WhatsApp** | Conexão via Evolution API |
-| **IA** | Gemini, GPT-4, Claude |
-| **Multi-tenant** | Várias empresas por instalação |
-| **Pagamentos** | Stripe integrado |
+### 1️⃣ Clone o projeto no seu Vercel
 
----
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/jeffersoncharles1007-lang/zapiacrm-easypanel-template&env=GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,EVOLUTION_API_URL,EVOLUTION_API_KEY&envDescription=Credenciais%20fornecidas%20na%20compra%20(WhatsApp%20e%20Google))
 
-## 📋 Comandos Úteis
+- Faça login com o **seu GitHub** → o Vercel copia o repositório para a sua conta (**o código passa a ser seu**).
+- Quando pedir as variáveis, **cole os 4 valores que recebeu na compra**:
+  `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`.
 
-```bash
-# Ver logs em tempo real
-cd /opt/zapiacrm && docker compose logs -f
+### 2️⃣ Conecte o banco (Supabase) — 1 clique
 
-# Reiniciar
-cd /opt/zapiacrm && docker compose restart
+No projeto criado no Vercel:
+1. Aba **Storage** (ou **Integrations**) → **Supabase** → **Connect**.
+2. O Vercel cria um projeto Supabase **na sua conta** e injeta as chaves automaticamente
+   (`SUPABASE_URL`, anon key, service role, `POSTGRES_URL_NON_POOLING`).
+3. Vá em **Deployments → Redeploy**. No build, as **tabelas são criadas sozinhas**
+   (24 migrations aplicadas automaticamente).
 
-# Parar
-cd /opt/zapiacrm && docker compose down
+### 3️⃣ Acesse e crie sua conta admin
 
-# Ver status
-cd /opt/zapiacrm && docker compose ps
+- Abra a URL que o Vercel gerou (ou aponte seu domínio em **Settings → Domains**; HTTPS é automático).
+- Clique em **Criar conta** — o primeiro cadastro vira o administrador.
+- WhatsApp e Google Agenda **já vêm funcionando** (credenciais compartilhadas).
 
-# Atualizar (recomendado)
-cd /opt/zapiacrm && docker compose pull && docker compose up -d
-```
+**Pronto. Sistema no ar.** 🎉
 
 ---
 
-## 🔧 Solução de Problemas
+## 🔑 Variáveis de ambiente
 
-### "Port 4000 already in use"
-```bash
-docker ps  # veja qual container usa a porta
-docker stop NOME-DO-CONTAINER
-cd /opt/zapiacrm && docker compose up -d
-```
+| Variável | Quem fornece | Segredo? |
+|---|---|---|
+| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `POSTGRES_URL_NON_POOLING` | Integração Supabase (automático) | — |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Você recebe na compra | Secret é sim |
+| `EVOLUTION_API_URL` / `EVOLUTION_API_KEY` | Você recebe na compra | Key é sim |
+| `VITE_PAYMENTS_CLIENT_TOKEN` | Opcional (Paddle) | sim |
+| `GOOGLE_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Opcional — configure depois no painel | sim |
 
-### "Não consigo acessar"
-```bash
-# Libere a porta no firewall
-ufw allow 4000/tcp
-# ou
-iptables -I INPUT -p tcp --dport 4000 -j ACCEPT
-```
+As variáveis `VITE_*` são geradas automaticamente no build (`scripts/vercel-build.mjs`).
 
-### Ver logs de erro
-```bash
-cd /opt/zapiacrm && docker compose logs --tail=100
-```
+---
 
-### Reiniciar do zero
+## 🧱 Como funciona por baixo
+
+- **App:** TanStack Start (React + Vite + Nitro), buildado com `NITRO_PRESET=vercel`.
+- **Banco/Auth:** Supabase (Postgres + GoTrue + PostgREST + Realtime), operado pelo Supabase.
+- **Migrations:** `supabase/migrations/*.sql` aplicadas no build por `scripts/migrate.mjs` (idempotente).
+- **WhatsApp:** Evolution API central (compartilhada).
+- **IA:** Google Gemini / OpenAI / Anthropic (chaves opcionais, configuráveis no painel).
+
+---
+
+## 💻 Rodar localmente (opcional, para desenvolvedores)
+
 ```bash
-cd /opt/zapiacrm
-docker compose down -v    # ⚠️ apaga dados
-docker compose up -d      # reinstala
+npm install
+cp .env.example .env.local   # preencha os valores
+npm run migrate              # aplica as migrations no seu Supabase
+npm run dev
 ```
 
 ---
 
-## 🏗️ Arquitetura
+## 🎨 Colocar sua marca
 
-```
-┌─────────────────────────────────────┐
-│           VPS do Cliente            │
-│                                     │
-│  ┌─────────────────────────────┐   │
-│  │     postgres:15-alpine     │   │
-│  │     (banco de dados)       │   │
-│  └─────────────────────────────┘   │
-│                                     │
-│  ┌─────────────────────────────┐   │
-│  │     zapiacrm-app           │   │
-│  │     (app TanStack)         │   │
-│  │     porta: 4000            │   │
-│  └─────────────────────────────┘   │
-│                                     │
-│  ◄── Evolution API centralizada    │
-│      (WhatsApp)                     │
-└─────────────────────────────────────┘
-```
+O código é seu. Nome, logo e cores podem ser ajustados no projeto. (Ver `tasks/todo.md` → Fase 5.)
 
 ---
 
 ## 📊 Requisitos
 
-| Recurso | Mínimo | Recomendado |
-|---------|--------|-------------|
-| RAM | 1 GB | 2 GB |
-| CPU | 1 core | 2 cores |
-| Disco | 10 GB | 20 GB |
-| Ubuntu | 22.04+ | 22.04 LTS |
+- Conta **Vercel** (free serve para começar; domínio próprio pode exigir plano pago).
+- Conta **Supabase** (free: 500MB de banco; Pro conforme o uso).
 
 ---
 
-## 🔒 Segurança
-
-- Banco de dados com senha única por instalação
-- Variables de ambiente, sem secrets no código
-- RLS (Row Level Security) habilitado
-- HTTPS recomendado (configure no reverse proxy)
-
----
-
-## 📞 Suporte
-
-- **GitHub Issues:** https://github.com/jeffersoncharles1007-lang/zapiacrm-easypanel-template/issues
-- **Email:** suporte@zapiacrm.com.br
-
----
-
-## 📄 Licença
-
-Copyright © 2024 ZAPIACRM. Todos os direitos reservados.
-
----
-
-**Tempo de instalação: ~2 minutos** 🎉
+Copyright © ZAPIACRM.

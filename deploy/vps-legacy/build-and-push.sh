@@ -5,8 +5,9 @@
 
 set -e
 
-DOCKERHUB_USER="jeffersoncharles1007"
-DOCKERHUB_TOKEN="dckr_pat_nF8i80VE2dXMC8AZ6Nu1TXR3F6w"
+# Defina antes de rodar:  export DOCKERHUB_USER=...  export DOCKERHUB_TOKEN=...
+DOCKERHUB_USER="${DOCKERHUB_USER:?defina DOCKERHUB_USER no ambiente}"
+DOCKERHUB_TOKEN="${DOCKERHUB_TOKEN:?defina DOCKERHUB_TOKEN no ambiente}"
 IMAGE_NAME="zapiacrm-app"
 
 echo "============================================================"
