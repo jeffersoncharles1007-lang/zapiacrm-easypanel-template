@@ -1,151 +1,160 @@
-# 🚀 ZAPIACRM - Como Instalar em 5 Minutos
+# 🚀 ZAPIACRM - CRM + WhatsApp + IA
 
-Guia **ultra simplificado**. O cliente só precisa de **1 comando + 1 informação**.
+**Instale em 2 minutos com 1 comando!**
 
----
-
-## 📋 Passo a Passo (5 minutos no total)
-
-### 1️⃣ Contrate uma VPS Ubuntu (se ainda não tem)
-
-**Opções recomendadas:**
-
-| Provedor | Plano | Preço |
-|----------|-------|-------|
-| Hostinger | VPS KVM 1 | R$30/mês |
-| DigitalOcean | Basic Droplet | $6/mês (~R$30) |
-| Hetzner | CX22 | €4/mês (~R$22) |
-
-**Requisitos mínimos:** Ubuntu 22.04+, 2GB RAM
+Sistema CRM completo com WhatsApp integrado e inteligência artificial para automação de vendas. Ideal para agências que revendem para clientes finais.
 
 ---
 
-### 2️⃣ Conecte na VPS via SSH
+## ⚡ Instalação Rápida (2 minutos)
 
-**Windows:** Abra PowerShell e rode:
-```bash
-ssh root@IP-DA-VPS
-```
-
-**Mac/Linux:** Abra o Terminal e rode:
-```bash
-ssh root@IP-DA-VPS
-```
-
-Digite a senha quando pedir.
-
----
-
-### 3️⃣ Cole o comando único e responda 1 pergunta
+### 1️⃣ SSH na VPS
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeffersoncharles1007-lang/zapiacrm-easypanel-template/main/install-1click.sh | bash
+ssh root@IP-DA-SUA-VPS
 ```
 
-**Quando pedir**, digite o IP da VPS (ou domínio):
-```
-Qual o IP da sua VPS ou dominio?
-→ 123.456.78.90
-```
+### 2️⃣ Cole este comando:
 
-**Aguarde 3-5 minutos** enquanto:
-- Instala Docker (se necessário)
-- Baixa as imagens (Postgres + ZAPIACRM + Evolution)
-- Cria o banco de dados automaticamente
-- Configura tudo
-
----
-
-### 4️⃣ Acesse no navegador
-
-Quando aparecer `SISTEMA PRONTO!`, abra:
-
-```
-http://123.456.78.90:4000
-```
-
----
-
-### 5️⃣ Crie sua conta
-
-1. Clique em **"Criar conta"**
-2. Digite email e senha
-3. Você automaticamente vira **administrador**
-4. Pronto, pode usar!
-
----
-
-### 6️⃣ (Opcional) Conecte seu WhatsApp
-
-1. Vá em **/whatsapp** no menu
-2. Escaneie o QR Code com seu celular
-3. Pronto! Mensagens começam a ser processadas pela IA
-
----
-
-## 🎯 Resumo: O que o cliente faz vs. o que o Docker faz
-
-### 👤 O cliente só faz:
-1. Contrata VPS
-2. Conecta SSH
-3. Cola 1 comando
-4. Digita 1 coisa (IP)
-5. Espera 5 minutos
-6. Cria conta no navegador
-
-### 🤖 O Docker faz sozinho (cliente nem vê):
-- ✅ Instala Docker se faltar
-- ✅ Cria banco Postgres
-- ✅ Cria 17 tabelas automaticamente
-- ✅ Configura 5 funções SQL
-- ✅ Configura policies de segurança
-- ✅ Sobe servidor Node.js
-- ✅ Conecta Evolution API (WhatsApp central)
-- ✅ Mantém tudo rodando 24/7
-
----
-
-## 🆘 Problemas Comuns
-
-### "Docker not found"
-O instalador instala automaticamente. Se der erro:
 ```bash
-curl -fsSL https://get.docker.com | sh
+curl -fsSL https://raw.githubusercontent.com/jeffersoncharles1007-lang/zapiacrm-easypanel-template/main/install-minimal.sh | bash
 ```
+
+### 3️⃣ Aguarde ~2 minutos
+
+O sistema vai:
+- Instalar Docker (se necessário)
+- Baixar imagem do Docker Hub
+- Subir todos os serviços
+- Configurar banco de dados
+
+### 4️⃣ Acesse!
+
+```
+http://localhost:4000
+```
+
+---
+
+## 🎯 O que está Included
+
+| Componente | Descrição |
+|------------|-----------|
+| **CRM Kanban** | Cards, estágios, automações |
+| **WhatsApp** | Conexão via Evolution API |
+| **IA** | Gemini, GPT-4, Claude |
+| **Multi-tenant** | Várias empresas por instalação |
+| **Pagamentos** | Stripe integrado |
+
+---
+
+## 📋 Comandos Úteis
+
+```bash
+# Ver logs em tempo real
+cd /opt/zapiacrm && docker compose logs -f
+
+# Reiniciar
+cd /opt/zapiacrm && docker compose restart
+
+# Parar
+cd /opt/zapiacrm && docker compose down
+
+# Ver status
+cd /opt/zapiacrm && docker compose ps
+
+# Atualizar (recomendado)
+cd /opt/zapiacrm && docker compose pull && docker compose up -d
+```
+
+---
+
+## 🔧 Solução de Problemas
 
 ### "Port 4000 already in use"
-Outro app está usando a porta. Mate-o:
 ```bash
-docker ps
-docker stop [nome-do-container]
+docker ps  # veja qual container usa a porta
+docker stop NOME-DO-CONTAINER
+cd /opt/zapiacrm && docker compose up -d
 ```
 
-### "Não consigo acessar http://IP:4000"
-Verifique o firewall da VPS:
+### "Não consigo acessar"
 ```bash
+# Libere a porta no firewall
 ufw allow 4000/tcp
+# ou
+iptables -I INPUT -p tcp --dport 4000 -j ACCEPT
 ```
 
-### Reiniciar tudo do zero
+### Ver logs de erro
 ```bash
-cd /opt/zapiacrm
-docker compose down
-docker compose up -d
+cd /opt/zapiacrm && docker compose logs --tail=100
 ```
 
-### Ver logs (se algo der errado)
+### Reiniciar do zero
 ```bash
 cd /opt/zapiacrm
-docker compose logs -f
+docker compose down -v    # ⚠️ apaga dados
+docker compose up -d      # reinstala
 ```
+
+---
+
+## 🏗️ Arquitetura
+
+```
+┌─────────────────────────────────────┐
+│           VPS do Cliente            │
+│                                     │
+│  ┌─────────────────────────────┐   │
+│  │     postgres:15-alpine     │   │
+│  │     (banco de dados)       │   │
+│  └─────────────────────────────┘   │
+│                                     │
+│  ┌─────────────────────────────┐   │
+│  │     zapiacrm-app           │   │
+│  │     (app TanStack)         │   │
+│  │     porta: 4000            │   │
+│  └─────────────────────────────┘   │
+│                                     │
+│  ◄── Evolution API centralizada    │
+│      (WhatsApp)                     │
+└─────────────────────────────────────┘
+```
+
+---
+
+## 📊 Requisitos
+
+| Recurso | Mínimo | Recomendado |
+|---------|--------|-------------|
+| RAM | 1 GB | 2 GB |
+| CPU | 1 core | 2 cores |
+| Disco | 10 GB | 20 GB |
+| Ubuntu | 22.04+ | 22.04 LTS |
+
+---
+
+## 🔒 Segurança
+
+- Banco de dados com senha única por instalação
+- Variables de ambiente, sem secrets no código
+- RLS (Row Level Security) habilitado
+- HTTPS recomendado (configure no reverse proxy)
 
 ---
 
 ## 📞 Suporte
 
-- Email: suporte@zapiacrm.com.br
-- Documentação: https://github.com/jeffersoncharles1007-lang/zapiacrm-easypanel-template
+- **GitHub Issues:** https://github.com/jeffersoncharles1007-lang/zapiacrm-easypanel-template/issues
+- **Email:** suporte@zapiacrm.com.br
 
 ---
 
-**Tempo total: 5 minutos. Clientes não precisam entender Docker, banco de dados, ou SSH avançado.** 🎉
+## 📄 Licença
+
+Copyright © 2024 ZAPIACRM. Todos os direitos reservados.
+
+---
+
+**Tempo de instalação: ~2 minutos** 🎉
