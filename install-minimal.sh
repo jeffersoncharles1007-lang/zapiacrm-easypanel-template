@@ -31,55 +31,53 @@ USE_DOCKERHUB=true
 
 clear
 echo -e "${BLUE}"
-echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                                                              ║"
-echo "║              ZAPIACRM - INSTALAÇÃO RÁPIDA                   ║"
-echo "║                                                              ║"
-echo "║              CRM + WhatsApp + IA em 3 minutos                ║"
-echo "║                                                              ║"
-echo "╚══════════════════════════════════════════════════════════════╝"
+echo "============================================================"
+echo "          ZAPIACRM - Instalacao Automatica"
+echo "============================================================"
 echo -e "${NC}"
 echo ""
 
 # ===== 1. Verificar Docker =====
-echo -e "${BLUE}[1/5] Verificando Docker...${NC}"
+echo -e "${BLUE}[1/6] Verificando Docker...${NC}"
 if ! command -v docker &> /dev/null; then
-  echo -e "${YELLOW}  Docker não encontrado. Instalando...${NC}"
+  echo -e "${YELLOW}  Docker nao encontrado. Instalando...${NC}"
   curl -fsSL https://get.docker.com | sh
   service docker start 2>/dev/null || true
-  echo -e "${GREEN}  ✓ Docker instalado${NC}"
+  echo -e "${GREEN}  OK Docker instalado${NC}"
 else
-  echo -e "${GREEN}  ✓ Docker OK${NC}"
+  echo -e "${GREEN}  OK Docker ja esta instalado${NC}"
 fi
 
 # Verificar docker compose
 if ! docker compose version &> /dev/null && ! docker-compose --version &> /dev/null; then
-  echo -e "${RED}  ✗ docker compose não encontrado${NC}"
+  echo -e "${RED}  ERRO docker compose nao encontrado${NC}"
   exit 1
 fi
-echo -e "${GREEN}  ✓ docker compose OK${NC}"
+echo -e "${GREEN}  OK docker compose OK${NC}"
 
 # ===== 2. Preparar diretório =====
 echo ""
-echo -e "${BLUE}[2/5] Preparando diretório...${NC}"
+echo -e "${BLUE}[2/6] Preparando diretorio...${NC}"
 if [ -d "$INSTALL_DIR" ]; then
-  echo -e "${YELLOW}  Removendo instalação anterior...${NC}"
-  docker compose -f "$INSTALL_DIR/docker-compose.yml" down -v 2>/dev/null || true
+  echo -e "${YELLOW}  Removendo instalacao anterior...${NC}"
+  if [ -f "$INSTALL_DIR/docker-compose.yml" ]; then
+    docker compose -f "$INSTALL_DIR/docker-compose.yml" down -v 2>/dev/null || true
+  fi
   rm -rf "$INSTALL_DIR"
 fi
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
-echo -e "${GREEN}  ✓ Diretório pronto: $INSTALL_DIR${NC}"
+echo -e "${GREEN}  OK Diretorio pronto: $INSTALL_DIR${NC}"
 
 # ===== 3. Baixar credenciais centralizadas =====
 echo ""
-echo -e "${BLUE}[3/5] Baixando credenciais...${NC}"
+echo -e "${BLUE}[3/6] Baixando credenciais...${NC}"
 TMP_CREDS=$(mktemp)
 if curl -fsSL "$CREDENTIALS_URL" -o "$TMP_CREDS" 2>/dev/null; then
   source "$TMP_CREDS"
-  echo -e "${GREEN}  ✓ Credenciais obtidas${NC}"
+  echo -e "${GREEN}  OK Credenciais obtidas${NC}"
 else
-  echo -e "${YELLOW}  ⚠ Não foi possível baixar credenciais${NC}"
+  echo -e "${YELLOW}  AVISO Nao foi possivel baixar credenciais${NC}"
   # Usar placeholders
   EVOLUTION_API_URL="https://evolution-api-placeholder.example.com"
   EVOLUTION_API_KEY="placeholder"
@@ -91,31 +89,43 @@ rm -f "$TMP_CREDS"
 # Gerar senhas
 DB_PASS="zap$(openssl rand -hex 4 2>/dev/null || echo "1acrm2026")"
 
-# ===== 4. Tentar Docker Hub primeiro, senão git clone =====
+# ===== 4. Baixar docker-compose.yml =====
 echo ""
-echo -e "${BLUE}[4/5] Baixando imagem do sistema...${NC}"
+echo -e "${BLUE}[4/6] Baixando configuracao...${NC}"
+if ! curl -fsSL "$BASE_URL/docker-compose-minimal.yml" -o "$INSTALL_DIR/docker-compose.yml"; then
+  echo -e "${RED}  ERRO Nao foi possivel baixar docker-compose.yml${NC}"
+  echo -e "${YELLOW}  Tentando git clone como alternativa...${NC}"
+  cd /opt
+  if git clone --depth 1 "$REPO_URL" "$INSTALL_DIR-tmp" 2>&1 | tail -3; then
+    mv "$INSTALL_DIR-tmp/docker-compose-minimal.yml" "$INSTALL_DIR/docker-compose.yml"
+    rm -rf "$INSTALL_DIR-tmp"
+  else
+    echo -e "${RED}  ERRO Falha total ao obter docker-compose.yml${NC}"
+    exit 1
+  fi
+fi
+echo -e "${GREEN}  OK docker-compose.yml baixado${NC}"
+
+# ===== 5. Tentar Docker Hub primeiro, senão git clone =====
+echo ""
+echo -e "${BLUE}[5/6] Baixando imagem do sistema...${NC}"
 
 # Tentar Docker Hub
 echo -e "${CYAN}  Tentando baixar do Docker Hub...${NC}"
 if docker pull "$DOCKERHUB_IMAGE" 2>&1 | tail -5; then
-  echo -e "${GREEN}  ✓ Imagem do Docker Hub OK${NC}"
+  echo -e "${GREEN}  OK Imagem do Docker Hub OK${NC}"
   USE_DOCKERHUB=true
 else
-  echo -e "${YELLOW}  ⚠ Docker Hub não disponível. Fazendo build local...${NC}"
+  echo -e "${YELLOW}  AVISO Docker Hub nao disponivel. Fazendo build local...${NC}"
   USE_DOCKERHUB=false
 fi
 
 if [ "$USE_DOCKERHUB" = false ]; then
   # Git clone para build local
-  echo -e "${CYAN}  Clonando repositório para build local...${NC}"
+  echo -e "${CYAN}  Clonando repositorio para build local...${NC}"
   rm -rf /tmp/zapiacrm-build
   if git clone --depth 1 "$REPO_URL" /tmp/zapiacrm-build 2>&1 | tail -3; then
-    echo -e "${GREEN}  ✓ Repositório clonado${NC}"
-
-    # Copiar arquivos necessários
-    cp /tmp/zapiacrm-build/docker-compose.yml ./
-    cp /tmp/zapiacrm-build/docker-entrypoint.sh ./
-    chmod +x docker-entrypoint.sh
+    echo -e "${GREEN}  OK Repositorio clonado${NC}"
 
     # Copiar SQL files
     if [ -d "/tmp/zapiacrm-build/sql" ]; then
@@ -127,23 +137,23 @@ if [ "$USE_DOCKERHUB" = false ]; then
     echo -e "${CYAN}  Fazendo build local (isso demora ~5 minutos)...${NC}"
     cd /tmp/zapiacrm-build
     if docker build --no-cache -t zapiacrm-local:latest . 2>&1 | tail -10; then
-      echo -e "${GREEN}  ✓ Build local concluído${NC}"
+      echo -e "${GREEN}  OK Build local concluido${NC}"
+      # Atualizar docker-compose para usar imagem local
+      cd "$INSTALL_DIR"
+      sed -i "s|image:.*jefferson.*|image: zapiacrm-local:latest|" docker-compose.yml
     else
-      echo -e "${RED}  ✗ Build local falhou${NC}"
+      echo -e "${RED}  ERRO Build local falhou${NC}"
       exit 1
     fi
-
-    cd "$INSTALL_DIR"
-    sed -i "s|image:.*jefferson.*|image: zapiacrm-local:latest|" docker-compose.yml
   else
-    echo -e "${RED}  ✗ Não foi possível baixar o projeto${NC}"
+    echo -e "${RED}  ERRO Nao foi possivel baixar o projeto${NC}"
     exit 1
   fi
 fi
 
-# ===== 5. Configuração =====
+# ===== 6. Configuração =====
 echo ""
-echo -e "${BLUE}[5/5] Configuração...${NC}"
+echo -e "${BLUE}[6/6] Configurando...${NC}"
 
 # Gerar keys
 ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ6YXBpYWNybSIsInJvbGUiOiJhbm9uIn0.$(openssl rand -hex 16 2>/dev/null || echo "placeholder")"
@@ -168,18 +178,18 @@ OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
 EOF
 
-echo -e "${GREEN}  ✓ Configuração gerada${NC}"
+echo -e "${GREEN}  OK Configuracao gerada${NC}"
 
-# ===== 6. Iniciar serviços =====
+# Iniciar serviços
 echo ""
-echo -e "${BLUE}[6/6] Iniciando ZAPIACRM...${NC}"
+echo -e "${BLUE}  Iniciando ZAPIACRM...${NC}"
 docker compose up -d
 
 echo ""
 echo -e "${YELLOW}  Aguardando sistema inicializar...${NC}"
 for i in {1..24}; do
   if curl -s http://localhost:4000 > /dev/null 2>&1; then
-    echo -e "${GREEN}  ✓ Sistema iniciado!${NC}"
+    echo -e "${GREEN}  OK Sistema iniciado!${NC}"
     break
   fi
   echo "    Tentativa $i/24..."
@@ -189,21 +199,17 @@ done
 # ===== Resultado =====
 clear
 echo ""
-echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗"
-echo "║                                                              ║"
-echo "║                  ✅ SISTEMA PRONTO!                          ║"
-echo "║                                                              ║"
-echo "╚══════════════════════════════════════════════════════════════╝"
-echo -e "${NC}"
+echo -e "${GREEN}============================================================"
+echo "       SISTEMA PRONTO!"
+echo "============================================================${NC}"
 echo ""
-echo -e "${YELLOW}  🌐 Acesse no navegador:${NC}"
+echo -e "${YELLOW}>>> Acesse no navegador: <<<${NC}"
 echo ""
-echo -e "     ${CYAN}http://localhost:4000${NC}"
+echo -e "    ${CYAN}http://localhost:4000${NC}"
 echo ""
-echo -e "${BLUE}  📋 Comandos úteis:${NC}"
-echo -e "     ${YELLOW}cd $INSTALL_DIR && docker compose logs -f${NC}  (ver logs)"
-echo -e "     ${YELLOW}cd $INSTALL_DIR && docker compose restart${NC}  (reiniciar)"
-echo -e "     ${YELLOW}cd $INSTALL_DIR && docker compose down${NC}     (parar)"
+echo -e "${BLUE}Comandos uteis:${NC}"
+echo -e "  ${YELLOW}cd $INSTALL_DIR && docker compose logs -f${NC}   # ver logs"
+echo -e "  ${YELLOW}cd $INSTALL_DIR && docker compose restart${NC}  # reiniciar"
+echo -e "  ${YELLOW}cd $INSTALL_DIR && docker compose ps${NC}       # ver status"
 echo ""
-echo -e "${GREEN}  ⏱️  Sistema rodando 24/7!${NC}"
-echo ""
+echo -e "${GREEN}Sistema funcionando 24/7!${NC}"
