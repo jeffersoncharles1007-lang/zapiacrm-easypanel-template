@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: ZAPIACRM Docker Build
 
 on:
   push:
@@ -7,24 +7,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: |
-            jeffersoncharles1007-lang/zapiacrm-app:latest
-            jeffersoncharles1007-lang/zapiacrm-app:v1.0
+      - name: Build and push
+        run: |
+          docker build -t jeffersoncharles1007-lang/zapiacrm-app:latest -t jeffersoncharles1007-lang/zapiacrm-app:v1.0 .
+          docker push jeffersoncharles1007-lang/zapiacrm-app:latest
+          docker push jeffersoncharles1007-lang/zapiacrm-app:v1.0
