@@ -24,13 +24,16 @@ until pg_isready -h postgres -p 5432 -U "${POSTGRES_USER:-admin}" 2>/dev/null; d
 done
 echo "  -> Banco OK"
 
+# EXPORT senha para psql pegar
+export PGPASSWORD="${POSTGRES_PASSWORD}"
+
 # Verifica se o banco precisa de setup
 echo "[2/4] Verificando se banco precisa de setup..."
-TABLE_EXISTS=$(PGPASSWORD="${POSTGRES_PASSWORD}" psql -h postgres -U "${POSTGRES_USER:-admin}" -d "${POSTGRES_DB:-zapiacrm}" -tAc "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='app_config');" 2>/dev/null || echo "false")
+TABLE_EXISTS=$(psql -h postgres -U "${POSTGRES_USER:-admin}" -d "${POSTGRES_DB:-zapiacrm}" -tAc "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='app_config');" 2>/dev/null || echo "false")
 
 if [ "$TABLE_EXISTS" != "t" ]; then
   echo "  -> Banco vazio. Rodando 00_setup_database.sql..."
-  PGPASSWORD="${POSTGRES_PASSWORD}" psql -h postgres -U "${POSTGRES_USER:-admin}" -d "${POSTGRES_DB:-zapiacrm}" -f /app/sql/00_setup_database.sql 2>&1 | tail -5
+  psql -h postgres -U "${POSTGRES_USER:-admin}" -d "${POSTGRES_DB:-zapiacrm}" -f /app/sql/00_setup_database.sql 2>&1 | tail -5
   echo "  -> Banco configurado!"
 else
   echo "  -> Banco ja configurado (pulando setup)"
