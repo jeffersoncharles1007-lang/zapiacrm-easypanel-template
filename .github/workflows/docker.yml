@@ -9,6 +9,7 @@ on:
       - 'package.json'
       - 'src/**'
       - 'sql/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 jobs:
@@ -33,7 +34,5 @@ jobs:
           tags: |
             jeffersoncharles1007-lang/zapiacrm-app:latest
             jeffersoncharles1007-lang/zapiacrm-app:v1.0
-          cache-froms: |
-            type=gha
-            type=registry,ref=jeffersoncharles1007-lang/zapiacrm-app:buildcache
-          cache-to: type=registry,ref=jeffersoncharles1007-lang/zapiacrm-app:buildcache,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
