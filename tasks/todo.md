@@ -103,6 +103,15 @@ testar CRM (rest/realtime) → testar WhatsApp (Evolution compartilhada) → tes
 - Mantido técnico (não vira marca): prefixo de instância Evolution `zapiacrm_<id>` e headers
   `X-ZAPIACRM-*` (contrato de integração). Build validado.
 
-### ⏳ Pendente (posso fazer depois, se quiser)
-- **Ponte de callback do Google** num domínio seu (p/ não cadastrar domínio por cliente).
+### ⏳ Google Agenda — MANTER e tratar depois (decisão 04/07/2026)
+A integração existe e funciona (agente.avancado.tsx "Google Agenda" + createGoogleCalendarEvent),
+ligada em 2 dos 3 planos. NÃO desligar. Para escalar "tratar direito" = 2 partes:
+1. **Ponte de callback**: redirect_uri fixo num domínio seu (ex: oauth.suamarca.com) cadastrado 1x
+   no Google Console; a ponte devolve o code pro domínio do cliente via `state`. Resolve o
+   redirect_uri_mismatch por cliente (senão, cadastrar cada domínio na mão a cada venda).
+2. **Verificação do app Google**: consent screen do escopo sensível `calendar.events` precisa ser
+   verificado pelo Google p/ remover o teto de ~100 usuários (somando TODOS os clientes) e o
+   aviso de "app não verificado". Exigência do Google, não dá p/ contornar no código.
+Interino até lá: adicionar `https://<dominio-cliente>/api/public/google-callback` no Google Console
+por venda; e manter poucos usuários enquanto não verificado.
 

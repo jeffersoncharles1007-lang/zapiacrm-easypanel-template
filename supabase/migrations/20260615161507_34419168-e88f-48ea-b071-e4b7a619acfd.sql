@@ -81,11 +81,11 @@ CREATE TABLE IF NOT EXISTS public.app_config (
 );
 GRANT ALL ON public.app_config TO service_role;
 ALTER TABLE public.app_config ENABLE ROW LEVEL SECURITY;
+-- [white-label] Sem super admin fixo: singleton criado vazio. O primeiro
+-- cadastro vira super admin (public.handle_new_user / claim_super_admin_if_empty).
 INSERT INTO public.app_config (id, super_admin_emails)
-VALUES (true, ARRAY['luis.bedinot@gmail.com'])
-ON CONFLICT (id) DO UPDATE
-  SET super_admin_emails =
-    (SELECT ARRAY(SELECT DISTINCT unnest(public.app_config.super_admin_emails || EXCLUDED.super_admin_emails)));
+VALUES (true, '{}'::text[])
+ON CONFLICT (id) DO NOTHING;
 
 -- PROFILES ------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.profiles (

@@ -1,2 +1,3 @@
-INSERT INTO public.user_roles (user_id, role) VALUES ('5d59803b-d8b6-492c-870f-597bf304cd9e', 'super_admin'::public.app_role) ON CONFLICT (user_id, role) DO NOTHING;
-INSERT INTO public.app_config (id, super_admin_emails) VALUES (true, ARRAY['luis.bedinot@gmail.com']) ON CONFLICT (id) DO UPDATE SET super_admin_emails = (SELECT ARRAY(SELECT DISTINCT unnest(public.app_config.super_admin_emails || ARRAY['luis.bedinot@gmail.com']))), updated_at = now();
+-- [white-label] Neutralizado: esta migration promovia um super admin fixo (dev).
+-- Numa instalacao nova, o PRIMEIRO cadastro vira super admin automaticamente
+-- (logica em public.handle_new_user / claim_super_admin_if_empty). Sem seeds fixos.
