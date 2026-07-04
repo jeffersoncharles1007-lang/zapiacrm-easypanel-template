@@ -29,8 +29,7 @@ export const Route = createFileRoute("/")({
       { title: `${brand.name} — IA atende seu WhatsApp 24h e organiza o CRM sozinha` },
       {
         name: "description",
-        content:
-          "Conecte seu número de WhatsApp em 2 minutos. A IA do ZAPIACRM responde, qualifica e move cada lead no funil automaticamente. 3 dias grátis para testar.",
+        content: `Conecte seu número de WhatsApp em 2 minutos. A IA do ${brand.name} responde, qualifica e move cada lead no funil automaticamente. 3 dias grátis para testar.`,
       },
       { property: "og:title", content: `${brand.name} — WhatsApp + IA + CRM no automático` },
       {
@@ -407,7 +406,7 @@ function PhoneMock() {
               A
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold truncate">ZAPIACRM • IA</div>
+              <div className="text-sm font-semibold truncate">{brand.name} • IA</div>
               <div className="text-[10px] text-[#25D366] flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-[#25D366]" /> online agora
               </div>
@@ -521,7 +520,7 @@ function Pain() {
         </h2>
         <p className="mt-6 text-lg md:text-xl text-white/65 leading-relaxed">
           A primeira empresa a responder vende. Sempre. Enquanto você está dirigindo, atendendo na loja
-          ou dormindo, os leads do anúncio que você pagou estão sumindo na fila. O ZAPIACRM responde
+          ou dormindo, os leads do anúncio que você pagou estão sumindo na fila. O {brand.name} responde
           em segundos, qualifica e já te entrega o lead pronto pra fechar.
         </p>
       </div>

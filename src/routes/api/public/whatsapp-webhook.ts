@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { brand } from "@/config/brand";
 
 export const Route = createFileRoute("/api/public/whatsapp-webhook")({
   server: {
@@ -384,7 +385,7 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
           return new Response("error", { status: 200 });
         }
       },
-      GET: async () => new Response("ZAPIACRM webhook online", { status: 200 }),
+      GET: async () => new Response(`${brand.name} webhook online`, { status: 200 }),
     },
   },
 });

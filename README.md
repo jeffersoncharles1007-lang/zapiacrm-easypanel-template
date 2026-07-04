@@ -71,9 +71,29 @@ npm run dev
 
 ---
 
-## 🎨 Colocar sua marca
+## 🎨 Colocar sua marca (white-label)
 
-O código é seu. Nome, logo e cores podem ser ajustados no projeto. (Ver `tasks/todo.md` → Fase 5.)
+Tudo num arquivo só: **`src/config/brand.ts`**. Trocar ali renomeia e recolore o app inteiro
+(aba do navegador, meta tags/SEO, landing page, painel, gráficos e cor primária da UI):
+
+```ts
+export const brand = {
+  name: "SUA MARCA",                 // nome exibido em todo o app
+  headline: "...",                   // subtítulo do <title>/SEO
+  description: "...",                 // meta description / compartilhamento
+  twitterHandle: "@suamarca",
+  primary: "#16A34A",                // cor primária (UI + gráficos)
+  logoIcon: "MessageCircle",         // ícone (lucide-react)
+};
+export const supportWhatsapp = "55...";  // WhatsApp de suporte no rodapé/erros
+```
+
+Marca **por empresa** (multi-tenant): cada empresa pode ter logo e cor próprios pelo painel
+(`company.logo_url` / `company.primary_color`), que sobrescrevem o padrão acima.
+
+> Strings **técnicas** que NÃO mudam com a marca (de propósito, para não quebrar integrações):
+> nome interno das instâncias na Evolution (`zapiacrm_<id>`) e os headers de webhook
+> (`X-ZAPIACRM-Signature`). São contrato de protocolo — só altere se souber o impacto.
 
 ---
 

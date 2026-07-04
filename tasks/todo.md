@@ -94,7 +94,15 @@ testar CRM (rest/realtime) → testar WhatsApp (Evolution compartilhada) → tes
 4. Entregar os 4 valores (GOOGLE_CLIENT_ID/SECRET, EVOLUTION_API_URL/KEY) ao cliente na venda.
 5. (Opcional) Renomear o repo de `zapiacrm-easypanel-template` p/ algo limpo (ex: `zapiacrm`).
 
+### ✅ Fase 5 (white-label) — FEITO
+- `src/config/brand.ts` é a fonte única (nome, headline, description, twitterHandle, cor).
+- Ligados ao brand: `__root.tsx` (title/meta/og/twitter), `index.tsx` (landing, 3 pontos),
+  `master/configuracoes.tsx`, `whatsapp-webhook.ts` (health).
+- Cor: `brand.primary` injetada como CSS var `--brand` na raiz (`__root.tsx`) → recolore UI + gráficos.
+  Marca por empresa (`company.logo_url`/`primary_color`) continua sobrescrevendo.
+- Mantido técnico (não vira marca): prefixo de instância Evolution `zapiacrm_<id>` e headers
+  `X-ZAPIACRM-*` (contrato de integração). Build validado.
+
 ### ⏳ Pendente (posso fazer depois, se quiser)
-- **Fase 5 (white-label):** centralizar marca (nome/logo/cores) num arquivo de config.
 - **Ponte de callback do Google** num domínio seu (p/ não cadastrar domínio por cliente).
 
