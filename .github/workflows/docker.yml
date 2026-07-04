@@ -4,12 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'Dockerfile'
-      - 'package.json'
-      - 'src/**'
-      - 'sql/**'
-      - '.github/workflows/**'
   workflow_dispatch:
 
 jobs:
@@ -34,5 +28,3 @@ jobs:
           tags: |
             jeffersoncharles1007-lang/zapiacrm-app:latest
             jeffersoncharles1007-lang/zapiacrm-app:v1.0
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
