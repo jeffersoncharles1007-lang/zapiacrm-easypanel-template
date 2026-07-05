@@ -272,20 +272,45 @@ END $$;
 
 -- handle_new_user trigger ---------------------------------
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
-DECLARE _emails text[]; _email text;
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $$
+DECLARE
+  _emails text[];
+  _email text;
+  _exists boolean;
 BEGIN
   INSERT INTO public.profiles (user_id, email)
   VALUES (NEW.id, NEW.email)
   ON CONFLICT (user_id) DO NOTHING;
 
-  SELECT super_admin_emails INTO _emails FROM public.app_config WHERE id = true;
   _email := NEW.email;
+
+  -- Verifica se email está na lista de super admins
+  SELECT super_admin_emails INTO _emails FROM public.app_config WHERE id = true;
   IF _emails IS NOT NULL AND _email = ANY(_emails) THEN
     INSERT INTO public.user_roles (user_id, role)
     VALUES (NEW.id, 'super_admin'::public.app_role)
     ON CONFLICT (user_id, role) DO NOTHING;
   END IF;
+
+  -- SE NINGUÉM É SUPER_ADMIN, ESTE USUÁRIO VIRA!
+  SELECT EXISTS(
+    SELECT 1 FROM public.user_roles WHERE role = 'super_admin'::public.app_role
+  ) INTO _exists;
+
+  IF NOT _exists THEN
+    -- Cria como super_admin
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (NEW.id, 'super_admin'::public.app_role)
+    ON CONFLICT (user_id, role) DO NOTHING;
+
+    -- Adiciona email à lista de super admins
+    UPDATE public.app_config
+    SET super_admin_emails = array_append(super_admin_emails, _email),
+        updated_at = now()
+    WHERE id = true;
+  END IF;
+
   RETURN NEW;
 END $$;
 

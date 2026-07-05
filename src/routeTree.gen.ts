@@ -28,6 +28,7 @@ import { Route as MasterNovaEmpresaRouteImport } from './routes/master/nova-empr
 import { Route as MasterEmpresasRouteImport } from './routes/master/empresas'
 import { Route as MasterConfiguracoesRouteImport } from './routes/master/configuracoes'
 import { Route as MasterAssinaturasRouteImport } from './routes/master/assinaturas'
+import { Route as MasterWelcomeRouteImport } from './routes/master/welcome'
 import { Route as DemoRelatoriosRouteImport } from './routes/demo/relatorios'
 import { Route as DemoIntegracoesRouteImport } from './routes/demo/integracoes'
 import { Route as DemoFinanceiroRouteImport } from './routes/demo/financeiro'
@@ -155,6 +156,11 @@ const MasterConfiguracoesRoute = MasterConfiguracoesRouteImport.update({
 const MasterAssinaturasRoute = MasterAssinaturasRouteImport.update({
   id: '/assinaturas',
   path: '/assinaturas',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterWelcomeRoute = MasterWelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
   getParentRoute: () => MasterRoute,
 } as any)
 const DemoRelatoriosRoute = DemoRelatoriosRouteImport.update({
@@ -1137,6 +1143,7 @@ const MasterRouteChildren: MasterRouteChildren = {
   MasterNovaEmpresaRoute: MasterNovaEmpresaRoute,
   MasterPainelRoute: MasterPainelRoute,
   MasterPlanosRoute: MasterPlanosRoute,
+  MasterWelcomeRoute: MasterWelcomeRoute,
   MasterIndexRoute: MasterIndexRoute,
 }
 
