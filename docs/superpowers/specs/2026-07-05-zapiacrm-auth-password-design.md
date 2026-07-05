@@ -1,160 +1,303 @@
-# Sistema de Autenticação Plano A — Password-Based (sem dependência de SMTP)
+# Sistema de Autenticação Plano B — WhatsApp OTP (com Evolution API)
 
 **Data:** 2026-07-05
 **Status:** Design (aguardando aprovação)
+**Atualiza:** Plano A (password-based) com nova abordagem via WhatsApp
 
 ## Contexto
 
-O ZAPIACRM usa Supabase Auth que envia magic link por email. O SMTP custom configurado (digitalfunnel.online) não está enviando emails — testes mostram que a INBOX do zapiacrm@digitalfunnel.online está vazia após cadastros.
+- SMTP custom (digitalfunnel.online) não está enviando emails
+- Evolution API (WhatsApp) JÁ ESTÁ FUNCIONANDO no deploy
+- White-label precisa funcionar sem depender de SMTP externo
+- Tentativas anteriores de bypass de auth criaram vulnerabilidades (revertidas)
 
-Tentativas anteriores de "bypass" criaram **vulnerabilidades críticas de impersonation** (qualquer pessoa com o email podia logar como o user). Estas vulnerabilidades foram revertidas (commit 82d09d4).
-
-**Decisão:** Eliminar dependência de email para autenticação. Email fica só para "esqueci senha" (admin master reseta manualmente se precisar).
+**Decisão final:** Usar **WhatsApp OTP de 6 dígitos** como método principal de auth, enviado via Evolution API.
 
 ## Princípios
 
-1. **Segurança em primeiro lugar** — nenhum bypass de auth que pule email
-2. **Master sempre consegue entrar** — define senha no primeiro acesso
-3. **Cliente tem fluxo claro** — email + senha para entrar
-4. **Email é opcional** — apenas para reset (e mesmo assim, admin master pode resetar manualmente)
+1. **Segurança em primeiro lugar** — sem bypass de auth
+2. **WhatsApp primeiro** (não email) — usa Evolution API que já funciona
+3. **Master sempre tem acesso** — define senha no onboarding como backup
+4. **Email é fallback** — usado se WhatsApp falhar
 
-## Mudanças
+## Fluxo de cadastro (2 etapas)
 
-### 1. Tela `/entrar` reescrita
-
-**Layout:** única tela com email + senha + botões
+### Etapa 1: Email + WhatsApp
 
 ```
-┌────────────────────────────────────────────┐
-│  🟢 ZAPIACRM                                  │
-│                                              │
-│  Email: [___________________________]       │
-│  Senha: [___________________________]       │
-│                                              │
-│  [Entrar]   [Criar conta]                    │
-│                                              │
-│  Esqueci a senha (admin reseta)              │
-└────────────────────────────────────────────┘
+┌────────────────────────────────────┐
+│  🟢 ZAPIACRM — Criar conta          │
+│                                      │
+│  Email:      [_______________]       │
+│  WhatsApp:   [55 11 9 9999-9999]    │
+│                                      │
+│  [Enviar código]                    │
+└────────────────────────────────────┘
 ```
 
-**Modos:**
-- `modo=entrar` (default): campos email+senha
-- `modo=criar`: campos email+senha+confirmar
+**Backend:**
+1. Valida formato email + WhatsApp (com mascara automática)
+2. Verifica se email/WhatsApp já existem no Supabase
+3. Gera código OTP de 6 dígitos (válido por 5 minutos)
+4. Salva OTP em memória (ou Redis em prod)
+5. Envia via WhatsApp: "Seu código ZAPIACRM: 123456. Válido por 5 minutos."
 
-### 2. Mudanças no fluxo `/entrar`
+### Etapa 2: Confirma código + cria conta
 
-| Ação | Comportamento |
-|------|---------------|
-| Submit "Entrar" | `supabase.auth.signInWithPassword({email, password})` |
-| Submit "Criar" | `supabase.auth.signUp({email, password, options: {emailRedirectTo: callback}})` |
-| Forgot password | Mostra mensagem: "Contate o admin master para resetar sua senha" |
+```
+┌────────────────────────────────────┐
+│  🟢 ZAPIACRM — Confirmação          │
+│                                      │
+│  Enviamos código pro: (62) 9****-9999│
+│                                      │
+│  Código: [_ _ _ _ _ _]              │
+│                                      │
+│  [Confirmar]                        │
+│                                      │
+│  Não recebeu? [Reenviar]            │
+└────────────────────────────────────┘
+```
 
-### 3. Server-fn `setUserPassword` (pro master)
+**Backend:**
+1. Verifica se código tá válido
+2. Cria user via `supabase.auth.admin.createUser({email, phone, phone_confirm: true})`
+3. Associa WhatsApp ao profile do user
+4. Loga o user automaticamente
+5. Redireciona pro /master/welcome (master) ou /app/checkout (cliente)
 
-Já existe em `src/lib/master-password.ts`. **Manter como está.**
+## Fluxo de login (mesmo se session expirou)
 
-**Endpoint:** POST `/api/master/set-password` (autenticado, só super_admin)
-- Admin pode setar senha do próprio user
-- Bypass via admin API, **sem precisar de email**
+```
+1. User acessa /entrar
+2. Digita email (e/ou WhatsApp)
+3. Clica "Entrar"
+4. Backend gera novo código OTP
+5. Envia por WhatsApp
+6. User digita código
+7. ✅ Loga
+```
 
-### 4. Modificação do trigger `handle_new_user`
+## Fluxo de "esqueci minha senha"
 
-**Antes:**
+```
+1. User clica "Esqueci minha senha" em /entrar
+2. Digita email
+3. Backend envia código OTP por WhatsApp (cadastrado previamente)
+4. User digita código
+5. Tela: "Defina nova senha"
+6. Backend atualiza senha via supabase.auth.updateUserByPassword
+7. ✅ Pode logar com nova senha
+```
+
+## Banco de dados
+
+### Migration nova: `add_whatsapp_to_profiles`
+
 ```sql
-IF NOT _exists AND NEW.email IS NOT NULL THEN
-  INSERT INTO public.user_roles (user_id, role) VALUES (...);
-END IF;
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS telefone text,
+  ADD COLUMN IF NOT EXISTS telefone_verificado boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS whatsapp_opt_in boolean NOT NULL DEFAULT true;
+
+-- Backfill: tentar extrair telefone de auth.users (se já tiver)
+UPDATE public.profiles p
+SET telefone = u.phone
+FROM auth.users u
+WHERE p.user_id = u.id AND p.telefone IS NULL;
 ```
 
-**Depois:** Manter igual. Não muda nada no trigger. O trigger continua promovendo 1º user a super_admin.
+### Migration nova: `create_otp_codes`
 
-### 5. Onboarding master (rota `/master/welcome`)
+```sql
+CREATE TABLE IF NOT EXISTS public.otp_codes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  identifier text NOT NULL,           -- email ou phone
+  code text NOT NULL,                  -- 123456
+  purpose text NOT NULL,                -- 'signup' | 'login' | 'reset_password'
+  attempts int NOT NULL DEFAULT 0,
+  expires_at timestamptz NOT NULL,
+  consumed boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 
-**Mantém** a tela de boas-vindas com:
-- Banner proeminente: "🔐 Defina sua senha"
-- Botão: "Definir senha agora"
-- Após definir, libera acesso ao painel
+CREATE INDEX idx_otp_codes_identifier ON public.otp_codes(identifier, purpose, created_at DESC);
+CREATE INDEX idx_otp_codes_expires ON public.otp_codes(expires_at);
 
-### 6. Remoção de código quebrado
+-- Limpa códigos expirados automaticamente (a cada hora)
+ALTER TABLE public.otp_codes ENABLE ROW LEVEL SECURITY;
 
-**REMOVER** (em commit único):
-- `src/routes/api/debug/test-email.ts` (não mais útil)
-- `src/lib/own-magic-link.ts` (não mais usado)
-- `src/lib/master-aux.ts` (se existir)
-- `package.json` dep `nodemailer` (não vai ser usada)
-
-**MANTER**:
-- `src/lib/master-password.ts` (essencial pro fluxo de senha master)
-- `src/routes/master/set-password.tsx` (rota de definição de senha)
-
-## Fluxo do Usuário Master
-
-```
-1. /entrar (default modo=entrar)
-2. User digita email + senha
-3. Clica "Criar conta" (se ainda não tem) ou "Entrar"
-4. Trigger handle_new_user promove 1º user a super_admin
-5. User vai pra /master/welcome
-6. Tela mostra banner: "🔐 Defina sua senha AGORA"
-7. User clica → preenche senha 2x → salva
-8. Trigger atualiza senha
-9. /master/welcome confirma: "Senha definida! Pode usar 'Entrar com senha'"
-10. ✅ User pode Sair e voltar usando email+senha (SEM precisar de email)
+DROP POLICY IF EXISTS otp_codes_all ON public.otp_codes;
+CREATE POLICY otp_codes_all ON public.otp_codes FOR ALL TO service_role USING (true) WITH CHECK (true);
 ```
 
-## Fluxo do Cliente
+## Server Functions
+
+### 1. `requestOtp` (POST `/api/auth/request-otp`)
+
+```typescript
+Input: { 
+  email: string, 
+  telefone: string,  // "5511999999999" (só dígitos)
+  purpose: 'signup' | 'login' | 'reset_password'
+}
+
+Output: { ok: true, code: '123456' }  // código retornado pra debug
+
+Lógica:
+1. Valida formato
+2. Verifica se email existe (pra login/reset) ou não existe (pra signup)
+3. Gera código 6 dígitos
+4. Salva em otp_codes (TTL 5 min)
+5. Envia via WhatsApp: `await sendWhatsApp(telefone, "Seu código ZAPIACRM: 123456")`
+6. Retorna ok
+```
+
+### 2. `verifyOtp` (POST `/api/auth/verify-otp`)
+
+```typescript
+Input: {
+  identifier: string,        // email ou phone
+  code: string,              // "123456"
+  purpose: 'signup' | 'login' | 'reset_password'
+  telefone?: string          // se signup, pra salvar
+}
+
+Output: {
+  ok: true,
+  actionLink: string,        // magic link gerado via admin.generateLink
+  email: string,
+  userId: string
+}
+
+Lógica:
+1. Busca código válido em otp_codes
+2. Verifica tentativas (max 3)
+3. Se signup: cria user com createUser({email, phone, phone_confirm: true})
+4. Se login/reset: valida user existe
+5. Gera magic link via admin.generateLink (SEM email, só pra session)
+6. Marca OTP como consumido
+7. Retorna actionLink pro client
+```
+
+### 3. `sendWhatsApp` (helper privado)
+
+```typescript
+async function sendWhatsApp(to: string, message: string) {
+  // Usa a função existente em src/lib/evolution.functions.ts
+  // Se não existir, cria a integração
+  return await evolutionSendText({ number: to, text: message });
+}
+```
+
+### 4. `resetPassword` (POST `/api/auth/reset-password`)
+
+```typescript
+Input: { email: string, code: string, newPassword: string }
+
+Lógica:
+1. Verifica OTP válido
+2. Chama supabase.auth.admin.updateUserById(userId, { password: newPassword })
+3. Marca OTP como consumido
+4. Retorna ok
+```
+
+## Frontend Changes
+
+### `/entrar` reescrito (single page com tabs)
 
 ```
-1. /entrar (modo=entrar) ou /entrar?modo=criar
-2. Digita email + senha + confirma
-3. Clica "Criar conta"
-4. signUp → user criado (com email_confirm=true se Supabase permitir)
-5. /app/onboarding wizard (5 etapas)
-6. ✅ Pode logar depois com email+senha
-7. Esqueceu senha? "Contate o admin master"
+Tab 1: Entrar
+  Email: [...]
+  [Enviar código] → abre modal/painel com input OTP
+
+Tab 2: Criar conta
+  Email: [...]
+  WhatsApp: [55 11 ...]
+  [Enviar código] → modal/painel confirma código
+  → após confirmar, loga e vai pro /app/onboarding ou /master/welcome
 ```
 
-## Arquivos modificados/criados
+Tab 3: Esqueci senha
+  Email: [...]
+  [Enviar código]
+  → modal/painel com:
+    - Input código
+    - Input nova senha
+    - Botão "Redefinir"
+```
+
+## Arquivos modificados
 
 | Arquivo | Mudança |
 |---------|---------|
-| `src/routes/entrar.tsx` | Reescrito: campos email+senha+confirmar |
-| `src/lib/master-password.ts` | Mantido (sem mudança) |
-| `src/routes/master/welcome.tsx` | Mantido (sem mudança) |
-| `src/routes/master/set-password.tsx` | Mantido (sem mudança) |
-| `src/lib/own-magic-link.ts` | **REMOVER** |
-| `src/routes/api/debug/test-email.ts` | **REMOVER** |
-| `package.json` | Remover `nodemailer` |
+| `src/lib/own-magic-link.ts` | **REMOVER** (não vai usar) |
+| `src/routes/api/debug/test-email.ts` | **REMOVER** (não vai usar) |
+| `package.json` | Remover `nodemailer` (não vai usar) |
+| `src/routes/entrar.tsx` | Reescrito: tabs (Entrar/Criar/Esqueci) com OTP |
+| `src/lib/auth-otp.ts` | **NOVO**: 3 server-fns (request, verify, reset) |
+| `src/lib/evolution.functions.ts` | Garantir que `sendText` funciona |
+| `supabase/migrations/20260705-add-whatsapp.sql` | **NOVO**: profiles.telefone + tabela otp_codes |
+
+## Fluxo detalhado do Master (1º user)
+
+```
+1. User cadastra email + WhatsApp em /entrar
+2. Sistema valida formato
+3. Envia OTP pro WhatsApp via Evolution API
+4. User recebe "Seu código ZAPIACRM: 123456"
+5. Digita no app
+6. Backend: valida OTP + cria user (email_confirm=true)
+7. Trigger handle_new_user: 1º user → super_admin automático
+8. ✅ Loga e vai pro /master/welcome
+9. Master define senha em /master/set-password (OPCIONAL mas recomendado)
+10. Pronto
+```
+
+**Para próximas vezes:**
+- User vai em /entrar
+- Digita email
+- Clica "Enviar código"
+- Recebe OTP no WhatsApp
+- Digita → entra
 
 ## Risco de segurança
 
-**Risco anterior (revertido):** Qualquer pessoa com email + API poderia logar.
-**Risco novo:** Zero. Senha é obrigatória pra entrar.
+| Antes (vulnerável) | Depois (seguro) |
+|---------------------|------------------|
+| Qualquer pessoa com email + API fazia login | Precisa de WhatsApp + código de 6 dígitos |
+| Sem limite de tentativas | Max 3 tentativas por código |
+| OTP nunca expira | OTP expira em 5 min |
+| Sem proteção contra força bruta | Tabela `otp_codes.attempts` limita |
 
-## Testes manuais
+## Testes
 
-1. ✅ Master cadastra com email+senha → loga no master
-2. ✅ Master sai → entra de novo com email+senha
-3. ✅ Master vai em /master/welcome → vê banner "Defina sua senha"
-4. ✅ Master define senha → banner some
-5. ✅ Master faz logout → entra com email+senha
-6. ✅ Cliente cadastra → entra no app
-7. ✅ Cliente tenta "Esqueci senha" → vê mensagem "Contate admin"
+1. ✅ Master cadastra com WhatsApp → recebe OTP → entra
+2. ✅ Master sai → entra de novo com email → recebe novo OTP → entra
+3. ✅ Cliente cadastra → entra
+4. ✅ Cliente esquece senha → recebe código no WhatsApp → redefine
+5. ✅ Tentativa com código errado 3x → bloqueia (mostra "aguarde 5 min")
+6. ✅ 2 números de WhatsApp diferentes pra ver que cada um recebe seu código
 
 ## Deploy
 
-- 1 commit com todas as mudanças
+- Migration no Supabase primeiro (add-whatsapp.sql)
+- 1 commit com código
 - 1 deploy na Vercel
-- Teste manual end-to-end
-- Tempo estimado: 1h
+- Testes manuais
+- Tempo estimado: 2h
 
-## O que NÃO entra no escopo
+## O que NÃO entra
 
-- ❌ Recuperação de senha por email (cliente tem que pedir pro admin)
-- ❌ Verificação de email obrigatória (vai depender do Supabase Auth config)
+- ❌ Email como método principal (só fallback se WhatsApp falhar)
 - ❌ Magic link (removido completamente)
-- ❌ Tela "esqueci minha senha" funcional (vai só mostrar mensagem)
+- ❌ Login com password (só no reset)
 - ❌ 2FA
-- ❌ OAuth (Google, Facebook, etc)
+- ❌ OAuth social
+- ❌ SMS (só WhatsApp)
 
-Esses itens podem ser adicionados em versões futuras, **quando o SMTP estiver funcionando**.
+## Próximo passo (após aprovação)
+
+1. Você revisa e aprova essa spec
+2. Eu implemento + deploy
+3. Testamos juntos
+4. Se funcionar, documentamos como white-label
