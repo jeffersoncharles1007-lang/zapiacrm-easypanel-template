@@ -56,6 +56,13 @@ async function main() {
     process.exit(0);
   }
 
+  // O Postgres do Supabase apresenta um certificado self-signed no chain e a
+  // connection string vem com sslmode=require (tratado como verify-full pelo pg),
+  // o que sobrepoe o ssl object abaixo. Como este runner roda APENAS no build
+  // (nunca em runtime de request), desabilitamos a verificacao de cert TLS para
+  // conseguir aplicar as migrations. Nao afeta a seguranca do app em producao.
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
   const client = new pg.Client({
     connectionString,
     ssl: { rejectUnauthorized: false },
