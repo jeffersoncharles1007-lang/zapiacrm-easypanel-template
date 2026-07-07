@@ -1,151 +1,211 @@
-# 🚀 ZAPIACRM - Como Instalar em 5 Minutos
+# 🚀 ZAPIACRM — CRM + WhatsApp + IA
 
-Guia **ultra simplificado**. O cliente só precisa de **1 comando + 1 informação**.
+Sistema de CRM com WhatsApp (Evolution API) e Inteligência Artificial para automação de vendas.
+Feito para rodar no **Vercel** (aplicação) + **Supabase** (banco/auth), na conta do próprio cliente.
 
----
-
-## 📋 Passo a Passo (5 minutos no total)
-
-### 1️⃣ Contrate uma VPS Ubuntu (se ainda não tem)
-
-**Opções recomendadas:**
-
-| Provedor | Plano | Preço |
-|----------|-------|-------|
-| Hostinger | VPS KVM 1 | R$30/mês |
-| DigitalOcean | Basic Droplet | $6/mês (~R$30) |
-| Hetzner | CX22 | €4/mês (~R$22) |
-
-**Requisitos mínimos:** Ubuntu 22.04+, 2GB RAM
+> **Você é dono do código.** Depois do deploy, pode editar, colocar sua marca e customizar à vontade.
 
 ---
 
-### 2️⃣ Conecte na VPS via SSH
+## ⚡ Colocar no ar (~15 min, sem servidor nem terminal)
 
-**Windows:** Abra PowerShell e rode:
+### 1️⃣ Clone o projeto no seu Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/jeffersoncharles1007-lang/zapiacrm-easypanel-template&env=GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,EVOLUTION_API_URL,EVOLUTION_API_KEY&envDescription=Credenciais%20fornecidas%20na%20compra%20(WhatsApp%20e%20Google))
+
+- Faça login com o **seu GitHub** → o Vercel copia o repositório para a sua conta (**o código passa a ser seu**).
+- Quando pedir as variáveis, **cole os 4 valores que recebeu na compra**:
+  `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`.
+
+### 2️⃣ Conecte o banco (Supabase) — 1 clique
+
+No projeto criado no Vercel:
+1. Aba **Storage** (ou **Integrations**) → **Supabase** → **Connect**.
+2. O Vercel cria um projeto Supabase **na sua conta** e injeta as chaves automaticamente
+   (`SUPABASE_URL`, anon key, service role, `POSTGRES_URL_NON_POOLING`).
+3. Vá em **Deployments → Redeploy**. No build, as **tabelas são criadas sozinhas**
+   (24 migrations aplicadas automaticamente).
+
+### 3️⃣ Acesse e crie sua conta admin
+
+- Abra a URL que o Vercel gerou (ou aponte seu domínio em **Settings → Domains**; HTTPS é automático).
+- Clique em **Criar conta** — o primeiro cadastro vira o administrador.
+- WhatsApp e Google Agenda **já vêm funcionando** (credenciais compartilhadas).
+
+**Pronto. Sistema no ar.** 🎉
+
+---
+
+## 🔑 Variáveis de ambiente
+
+| Variável | Quem fornece | Segredo? |
+|---|---|---|
+| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `POSTGRES_URL_NON_POOLING` | Integração Supabase (automático) | — |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Você recebe na compra | Secret é sim |
+| `EVOLUTION_API_URL` / `EVOLUTION_API_KEY` | Você recebe na compra | Key é sim |
+| `VITE_PAYMENTS_CLIENT_TOKEN` | Opcional (Paddle) | sim |
+| `GOOGLE_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Opcional — configure depois no painel | sim |
+
+As variáveis `VITE_*` são geradas automaticamente no build (`scripts/vercel-build.mjs`).
+
+---
+
+## 🧱 Como funciona por baixo
+
+- **App:** TanStack Start (React + Vite + Nitro), buildado com `NITRO_PRESET=vercel`.
+- **Banco/Auth:** Supabase (Postgres + GoTrue + PostgREST + Realtime), operado pelo Supabase.
+- **Migrations:** `supabase/migrations/*.sql` aplicadas no build por `scripts/migrate.mjs` (idempotente).
+- **WhatsApp:** Evolution API central (compartilhada).
+- **IA:** Google Gemini / OpenAI / Anthropic (chaves opcionais, configuráveis no painel).
+
+---
+
+## 💻 Rodar localmente (opcional, para desenvolvedores)
+
 ```bash
-ssh root@IP-DA-VPS
-```
-
-**Mac/Linux:** Abra o Terminal e rode:
-```bash
-ssh root@IP-DA-VPS
-```
-
-Digite a senha quando pedir.
-
----
-
-### 3️⃣ Cole o comando único e responda 1 pergunta
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/jeffersoncharles1007-lang/zapiacrm-easypanel-template/main/install-1click.sh | bash
-```
-
-**Quando pedir**, digite o IP da VPS (ou domínio):
-```
-Qual o IP da sua VPS ou dominio?
-→ 123.456.78.90
-```
-
-**Aguarde 3-5 minutos** enquanto:
-- Instala Docker (se necessário)
-- Baixa as imagens (Postgres + ZAPIACRM + Evolution)
-- Cria o banco de dados automaticamente
-- Configura tudo
-
----
-
-### 4️⃣ Acesse no navegador
-
-Quando aparecer `SISTEMA PRONTO!`, abra:
-
-```
-http://123.456.78.90:4000
+npm install
+cp .env.example .env.local   # preencha os valores
+npm run migrate              # aplica as migrations no seu Supabase
+npm run dev
 ```
 
 ---
 
-### 5️⃣ Crie sua conta
+## 🎨 Colocar sua marca (white-label)
 
-1. Clique em **"Criar conta"**
-2. Digite email e senha
-3. Você automaticamente vira **administrador**
-4. Pronto, pode usar!
+Tudo num arquivo só: **`src/config/brand.ts`**. Trocar ali renomeia e recolore o app inteiro
+(aba do navegador, meta tags/SEO, landing page, painel, gráficos e cor primária da UI):
+
+```ts
+export const brand = {
+  name: "SUA MARCA",                 // nome exibido em todo o app
+  headline: "...",                   // subtítulo do <title>/SEO
+  description: "...",                 // meta description / compartilhamento
+  twitterHandle: "@suamarca",
+  primary: "#16A34A",                // cor primária (UI + gráficos)
+  logoIcon: "MessageCircle",         // ícone (lucide-react)
+};
+export const supportWhatsapp = "55...";  // WhatsApp de suporte no rodapé/erros
+```
+
+Marca **por empresa** (multi-tenant): cada empresa pode ter logo e cor próprios pelo painel
+(`company.logo_url` / `company.primary_color`), que sobrescrevem o padrão acima.
+
+> Strings **técnicas** que NÃO mudam com a marca (de propósito, para não quebrar integrações):
+> nome interno das instâncias na Evolution (`zapiacrm_<id>`) e os headers de webhook
+> (`X-ZAPIACRM-Signature`). São contrato de protocolo — só altere se souber o impacto.
 
 ---
 
-### 6️⃣ (Opcional) Conecte seu WhatsApp
+## 📊 Requisitos
 
-1. Vá em **/whatsapp** no menu
-2. Escaneie o QR Code com seu celular
-3. Pronto! Mensagens começam a ser processadas pela IA
-
----
-
-## 🎯 Resumo: O que o cliente faz vs. o que o Docker faz
-
-### 👤 O cliente só faz:
-1. Contrata VPS
-2. Conecta SSH
-3. Cola 1 comando
-4. Digita 1 coisa (IP)
-5. Espera 5 minutos
-6. Cria conta no navegador
-
-### 🤖 O Docker faz sozinho (cliente nem vê):
-- ✅ Instala Docker se faltar
-- ✅ Cria banco Postgres
-- ✅ Cria 17 tabelas automaticamente
-- ✅ Configura 5 funções SQL
-- ✅ Configura policies de segurança
-- ✅ Sobe servidor Node.js
-- ✅ Conecta Evolution API (WhatsApp central)
-- ✅ Mantém tudo rodando 24/7
+- Conta **Vercel** (free serve para começar; domínio próprio pode exigir plano pago).
+- Conta **Supabase** (free: 500MB de banco; Pro conforme o uso).
 
 ---
 
-## 🆘 Problemas Comuns
+## 🔁 Clonar para um cliente novo (white-label)
 
-### "Docker not found"
-O instalador instala automaticamente. Se der erro:
-```bash
-curl -fsSL https://get.docker.com | sh
+> Quer revender, dar como serviço, ou rodar para outro cliente? Basta repetir este roteiro.
+
+### Passo 1: Banco novo no Supabase (5 min)
+
+1. Crie um projeto novo no Supabase (pode ser Pro ou Free).
+2. SQL Editor → **New query**.
+3. Cole **`SETUP_REPLICAVEL.sql`** (na raiz deste repo).
+4. Clique **Run**. Espera terminar — todas as tabelas, triggers, RLS, plans default são criados.
+
+### Passo 2: Configurar Auth (2 min)
+
+`Authentication → URL Configuration`:
+
+```
+Site URL:        https://cliente-app.vercel.app
+Redirect URLs:
+  https://cliente-app.vercel.app/entrar/callback
+  https://cliente-app.vercel.app/entrar
 ```
 
-### "Port 4000 already in use"
-Outro app está usando a porta. Mate-o:
-```bash
-docker ps
-docker stop [nome-do-container]
+`Authentication → Sign In/Up → Email`:
+- ✅ **Enable Email Signup**
+- ✅ **Magic Link** habilitado
+
+### Passo 3: Vercel novo (3 min)
+
+1. **Import Git Repository** apontando pra este repo (pode usar mesmo repo se quiser repos por cliente, senão fork).
+2. **Environment Variables** (em Project Settings), cole baseado em **`.env.example`**:
+
+   | Variável | Onde pegar |
+   |----------|------------|
+   | `SUPABASE_URL` | Supabase → Settings → API |
+   | `SUPABASE_PUBLISHABLE_KEY` | mesma aba |
+   | `SUPABASE_SERVICE_ROLE_KEY` | mesma aba (secret) |
+   | `KIWIFY_WEBHOOK_TOKEN` | kiwify.com → Apps → Webhooks |
+   | `CAKTO_WEBHOOK_TOKEN` | cakto.com → Configurações → Webhooks |
+   | `PERFECTPAY_WEBHOOK_TOKEN` | perfectpay.com → Ferramentas → Postback |
+   | `GOOGLE_API_KEY` | ai.google.dev (Gemini free) |
+
+3. **Deploy** → Aguarda build (1-2 min).
+
+### Passo 4: Primeiro cadastro (automático)
+
+1. Acesse o app novo.
+2. Cadastre um email (vai pra `/entrar`).
+3. Digite email → "Enviar link de acesso".
+4. Abre email → clica no link → cai em `/master/welcome` automaticamente.
+5. Pronto: **primeiro usuário virou super admin sozinho** (trigger `handle_new_user`).
+
+### Passo 5: Configurar billing (10 min)
+
+Em **Master → Configurações** você vê suas 3 URLs de webhook (Kiwify, Cakto, PerfectPay). Copie cada uma no painel do provedor correspondente:
+
+- **Kiwify:** Apps → Webhooks → Nova URL
+- **Cakto:** Configurações → Webhooks → Adicionar
+- **PerfectPay:** Ferramentas → Postback
+
+Use o mesmo secret que definiu nas env vars da Vercel.
+
+### Passo 6: Clientes que pagam (automático)
+
+Quando o cliente paga num desses provedores:
+
+1. Webhook chega em `/api/public/billing/webhook?provider=X&token=Y`
+2. **Se email já cadastrado** → ativa a empresa dele
+3. **Se email novo** → cria user + cria empresa + vincula + ativa (autoprovisioning)
+4. Cliente recebe email do Supabase ("Bem-vindo") + clica → entra
+
+**Não precisa de nenhum passo manual** após o setup.
+
+---
+
+### 🧪 Resetar banco pra teste (qualquer momento)
+
+Rode **`RESET_BANCO_TESTE.sql`** no SQL Editor:
+
+```sql
+-- Apaga users, empresas, roles, leads, mensagens
+-- 1º cadastro DEPOIS volta a ser super admin (porque lista está vazia)
 ```
 
-### "Não consigo acessar http://IP:4000"
-Verifique o firewall da VPS:
-```bash
-ufw allow 4000/tcp
-```
+⚠️ Não roda em produção — só ambiente de teste.
 
-### Reiniciar tudo do zero
-```bash
-cd /opt/zapiacrm
-docker compose down
-docker compose up -d
-```
+---
 
-### Ver logs (se algo der errado)
-```bash
-cd /opt/zapiacrm
-docker compose logs -f
+### 📋 Checklist de replicação
+
+```
+[ ] Supabase: novo projeto criado
+[ ] SETUP_REPLICAVEL.sql rodado
+[ ] Auth URL Configuration: site URL + redirect URLs
+[ ] Auth Sign In: magic link habilitado
+[ ] Vercel: novo projeto importado
+[ ] Vercel env vars: 6 variáveis preenchidas
+[ ] Deploy concluído (Ready)
+[ ] Primeiro cadastro (vira super admin)
+[ ] Webhook URLs configuradas nos provedores
+[ ] Compra teste de R$1 pra validar
 ```
 
 ---
 
-## 📞 Suporte
-
-- Email: suporte@zapiacrm.com.br
-- Documentação: https://github.com/jeffersoncharles1007-lang/zapiacrm-easypanel-template
-
----
-
-**Tempo total: 5 minutos. Clientes não precisam entender Docker, banco de dados, ou SSH avançado.** 🎉
+Copyright © ZAPIACRM.

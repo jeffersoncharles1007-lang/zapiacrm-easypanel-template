@@ -16,22 +16,103 @@ async function getAdmin() {
   return supabaseAdmin;
 }
 
-async function findCompanyByEmail(supabase: any, email: string): Promise<string | null> {
+/**
+ * Procura a empresa do comprador:
+ * 1. Tenta achar pelo email em company_user → profiles
+ * 2. Tenta achar pelo email_corporativo da company
+ * 3. Se não achar E tiver admin.auth.createUser disponível → cria user + cria empresa + vincula
+ */
+async function findOrProvisionCompanyByEmail(
+  supabase: any,
+  email: string,
+  buyerName?: string | null,
+): Promise<string | null> {
+  const norm = email.toLowerCase();
+
+  // 1) Achou user existente
   const { data: prof } = await supabase
     .from("profiles")
     .select("user_id")
-    .ilike("email", email)
+    .eq("email", norm)
     .maybeSingle();
-  if (!prof?.user_id) return null;
-  const { data: cu } = await supabase
-    .from("company_user")
-    .select("company_id")
-    .eq("user_id", prof.user_id)
-    .eq("ativo", true)
+
+  if (prof?.user_id) {
+    const { data: cu } = await supabase
+      .from("company_user")
+      .select("company_id")
+      .eq("user_id", prof.user_id)
+      .eq("ativo", true)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (cu?.company_id) return cu.company_id;
+  }
+
+  // 2) Company com email_corporativo igual
+  const { data: compByEmail } = await supabase
+    .from("company")
+    .select("id")
+    .eq("email_corporativo", norm)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  return cu?.company_id ?? null;
+  if (compByEmail?.id) return compByEmail.id;
+
+  // 3) NÃO achou → cria do zero (novo cliente veio do checkout sem signup prévio)
+  // Cria user via admin API (não precisa de senha)
+  const { data: created, error: createErr } = await supabase.auth.admin.createUser({
+    email: norm,
+    email_confirm: true, // ⚡ confirma o email automaticamente (cliente pagou)
+    user_metadata: { name: buyerName ?? "", source: "webhook" },
+  });
+  if (createErr || !created?.user?.id) {
+    console.error("admin.createUser falhou:", createErr);
+    return null;
+  }
+
+  const userId = created.user.id;
+
+  // Cria profile
+  await supabase
+    .from("profiles")
+    .upsert({ user_id: userId, email: norm, nome: buyerName ?? "" });
+
+  // Cria company nova pra esse cliente
+  const trialAte = new Date(Date.now() + 14 * 86400000).toISOString();
+  const slugBase = (norm.split("@")[0] || "empresa").replace(/[^a-z0-9]+/g, "-");
+  const slug = `${slugBase}-${Math.random().toString(36).slice(2, 6)}`;
+  const { data: newComp, error: compErr } = await supabase
+    .from("company")
+    .insert({
+      nome: buyerName || slugBase,
+      slug,
+      email_corporativo: norm,
+      status_cobranca: "trial",
+      trial_ate: trialAte,
+      created_by: userId,
+    })
+    .select("id")
+    .single();
+  if (compErr || !newComp?.id) {
+    console.error("company insert falhou:", compErr);
+    return null;
+  }
+
+  // Cria membership
+  await supabase
+    .from("company_user")
+    .insert({
+      company_id: newComp.id,
+      user_id: userId,
+      role: "owner",
+      ativo: true,
+    });
+
+  // Envia email pra usuário DEFINIR SENHA (ou usar magic link)
+  // O Supabase vai enviar o email confirmação automaticamente pq email_confirm=true
+  // Quando ele clicar, vai poder usar "Esqueci minha senha" se quiser definir uma
+
+  return newComp.id;
 }
 
 async function findPlanByRef(supabase: any, ref: string | null): Promise<string | null> {
@@ -62,17 +143,20 @@ async function applyEvent(evt: NormalizedBillingEvent) {
     return;
   }
 
-  const companyId = await findCompanyByEmail(supabase, evt.buyerEmail);
+  const companyId = await findOrProvisionCompanyByEmail(
+    supabase,
+    evt.buyerEmail,
+    (evt as any).buyerName ?? null,
+  );
   if (!companyId) {
     await supabase
       .from("billing_event_log")
-      .insert({ ...logRow, error: "empresa não encontrada para o email" });
+      .insert({ ...logRow, error: "empresa não foi possível criar/vincular para o email" });
     return;
   }
 
   const planId = await findPlanByRef(supabase, evt.productRef);
 
-  // Map status / billing
   let subStatus: string | null = null;
   let companyStatus: string | null = null;
 
@@ -118,7 +202,6 @@ async function applyEvent(evt: NormalizedBillingEvent) {
   if (evt.periodEnd) subPayload.current_period_end = evt.periodEnd;
   if (subStatus === "canceled") subPayload.canceled_at = new Date().toISOString();
 
-  // Upsert por company_id (1 assinatura por empresa).
   await supabase.from("subscription").upsert(subPayload, { onConflict: "company_id" });
 
   if (companyStatus) {
@@ -128,7 +211,6 @@ async function applyEvent(evt: NormalizedBillingEvent) {
       .eq("id", companyId);
   }
 
-  // Recarrega créditos do plano quando assinatura ativa/renova
   if (subStatus === "active" && planId) {
     const { data: planRow } = await supabase.from("plan").select("slug").eq("id", planId).maybeSingle();
     if (planRow?.slug) {
@@ -163,7 +245,6 @@ export const Route = createFileRoute("/api/public/billing/webhook")({
         try {
           body = await request.json();
         } catch {
-          // Alguns provedores enviam form-encoded
           try {
             const form = await request.formData();
             body = Object.fromEntries(form.entries());

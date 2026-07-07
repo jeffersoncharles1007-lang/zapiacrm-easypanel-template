@@ -10,10 +10,14 @@ export const Route = createFileRoute("/master")({
   beforeLoad: async () => {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) throw redirect({ to: "/entrar" });
+    // Se chegou aqui mas getUser() ainda não retornou user (race condition pós-magiclink),
+    // o client apenas não tá hidratado. Não deslogar — apenas recarregar.
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", u.user.id);
     const isSuper = (roles ?? []).some((r: any) => r.role === "super_admin");
     if (!isSuper) {
-      await supabase.auth.signOut();
+      // ⚠️ NÃO chamar signOut() aqui — pode ser race condition em que a sessão
+      // acabou de ser criada e o usuário AINDA não é reconhecido como super_admin
+      // pelo client Supabase. Em vez disso, mandar pra entrar com mensagem amigável.
       throw redirect({ to: "/entrar", search: { modo: "login" } });
     }
     return { user: u.user };

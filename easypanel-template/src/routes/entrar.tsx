@@ -5,33 +5,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import {
-  MessageSquareText,
-  Sparkles,
-  Loader2,
-  Bot,
-  KanbanSquare,
-  ShieldCheck,
-  MessageCircle,
-  ArrowLeft,
-  CheckCircle2,
+  MessageCircle, Sparkles, Loader2, Bot, KanbanSquare, ShieldCheck,
+  ArrowLeft, Mail,
 } from "lucide-react";
 import { brand } from "@/config/brand";
 
-type Search = { modo?: "login" | "signup"; plano?: string };
+type Search = { modo?: "login" | "criar"; plano?: string };
 
 export const Route = createFileRoute("/entrar")({
   ssr: false,
   head: () => ({ meta: [{ title: `${brand.name} — Começar` }] }),
   validateSearch: (s: Record<string, unknown>): Search => ({
-    modo: s.modo === "login" ? "login" : "signup",
+    modo: s.modo === "criar" ? "criar" : "login",
     plano: typeof s.plano === "string" ? s.plano : undefined,
   }),
   beforeLoad: async ({ search }) => {
     const { data } = await supabase.auth.getUser();
     if (data.user) {
-      const dest = search.plano ? `/app/checkout?plano=${encodeURIComponent(search.plano)}` : "/app/dashboard";
+      const dest = search.plano
+        ? `/app/checkout?plano=${encodeURIComponent(search.plano)}`
+        : "/app/dashboard";
       throw redirect({ href: dest });
     }
   },
@@ -44,115 +40,90 @@ const PLAN_LABEL: Record<string, { nome: string; preco: string }> = {
   business: { nome: "Business", preco: "R$ 497/mês" },
 };
 
-const emailSchema = z.string().email("E-mail inválido");
+const emailSchema = z.string().email("E-mail inválido").trim().toLowerCase();
 
-function genStrongPassword() {
-  const arr = new Uint8Array(24);
-  crypto.getRandomValues(arr);
-  return "Az9!" + btoa(String.fromCharCode(...arr)).replace(/[+/=]/g, "x").slice(0, 28);
-}
-
+/**
+ * Fluxo simplificado: SEM senha, SEM código de 6 dígitos.
+ * Cada login = um magiclink enviado por email (template do Supabase).
+ *
+ * - Clicar "Criar": envia magiclink; se user já existe, supabase retorna OK
+ *   silenciosamente (não revela se email tá cadastrado — segurança)
+ * - Clicar "Entrar": mesma chamada signInWithOtp, garante que user existe
+ * - Clicar "Criar": envia magiclink; se user já existe, supabase retorna OK
+ *
+ * Quando o user clica no link do email → sessão criada → vai pra /callback
+ * → callback redireciona pra /master/welcome (se super_admin) ou /app/dashboard
+ */
 function EntrarPage() {
   const navigate = useNavigate();
   const search = useSearch({ from: "/entrar" }) as Search;
+  const [tab, setTab] = useState<"entrar" | "criar">(search.modo === "criar" ? "criar" : "entrar");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [needsPassword, setNeedsPassword] = useState(search.modo === "login");
   const [loading, setLoading] = useState(false);
+  const [sentAt, setSentAt] = useState<number | null>(null);
 
   const planInfo = search.plano ? PLAN_LABEL[search.plano] : null;
+  const cooldownMs = 60_000; // anti-spam: 1 link/min
+  const cooldownLeft = sentAt ? Math.max(0, cooldownMs - (Date.now() - sentAt)) : 0;
 
-  async function routeAfterAuth() {
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) return;
-    if (search.plano) {
-      navigate({ to: "/app/checkout", search: { plano: search.plano } as any, replace: true });
-      return;
-    }
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", u.user.id);
-    if (roles?.some((r) => r.role === "super_admin")) {
-      navigate({ to: "/master/painel", replace: true });
-      return;
-    }
-    const { data: cu } = await supabase.from("company_user").select("company_id").eq("user_id", u.user.id).eq("ativo", true).maybeSingle();
-    navigate({ href: cu ? "/app/dashboard" : "/app/checkout", replace: true });
+  function switchTab(newTab: "entrar" | "criar") {
+    setTab(newTab);
+    setSentAt(null);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const v = emailSchema.safeParse(email);
-    if (!v.success) return toast.error(v.error.issues[0].message);
-    setLoading(true);
-
-    if (needsPassword) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      setLoading(false);
-      if (error) return toast.error("Senha incorreta. Tente novamente ou recupere sua senha.");
-      toast.success("Bem-vindo de volta!");
-      return routeAfterAuth();
-    }
-
-    const generated = genStrongPassword();
-    const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-      email,
-      password: generated,
-      options: { emailRedirectTo: window.location.origin + (search.plano ? `/app/checkout?plano=${search.plano}` : "/app/dashboard") },
-    });
-
-    if (signUpErr) {
-      const msg = (signUpErr.message || "").toLowerCase();
-      if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
-        setNeedsPassword(true);
-        setLoading(false);
-        toast.message("Já existe uma conta com esse e-mail.", { description: "Digite sua senha para continuar." });
-        return;
-      }
-      if (msg.includes("signups not allowed") || msg.includes("signup_disabled") || msg.includes("signup is disabled")) {
-        setNeedsPassword(true);
-        setLoading(false);
-        toast.message("Cadastros novos estão desativados.", { description: "Se você já tem conta, digite sua senha para entrar." });
-        return;
-      }
-      setLoading(false);
-      return toast.error(signUpErr.message);
-    }
-
-    if (signUpData.session) {
-      setLoading(false);
-      toast.success("Conta criada! Vamos para o pagamento.");
-      return routeAfterAuth();
-    }
-
-    const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password: generated });
-    setLoading(false);
-    if (signInErr) {
-      toast.success("Enviamos um link de confirmação para o seu e-mail.");
+  async function sendMagicLink() {
+    const parsed = emailSchema.safeParse(email);
+    if (!parsed.success) {
+      toast.error("Email inválido");
       return;
     }
-    toast.success("Conta criada!");
-    routeAfterAuth();
+
+    if (cooldownLeft > 0) {
+      toast.message(`Aguarde ${Math.ceil(cooldownLeft / 1000)}s antes de pedir novo link.`);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const redirectTo = `${window.location.origin}/callback`;
+      const { error } = await supabase.auth.signInWithOtp({
+        email: parsed.data,
+        options: {
+          emailRedirectTo: redirectTo,
+          shouldCreateUser: tab === "entrar" ? false : true,
+        },
+      });
+
+      // Supabase retorna OK silencioso se o email NÃO existe (privacidade).
+      // Mas aqui no client tratamos erros reais de transporte.
+      if (error) {
+        // rate-limit excedido, email inválido, etc.
+        const msg = error.message.toLowerCase();
+        if (msg.includes("rate") || msg.includes("limit")) {
+          toast.error("Muitas tentativas. Aguarde alguns minutos.");
+        } else if (msg.includes("signups not allowed") || msg.includes("signups_disabled")) {
+          toast.error("Cadastros novos desativados. Use 'Entrar' se já tem conta.");
+        } else {
+          toast.error(error.message);
+        }
+        return;
+      }
+
+      setSentAt(Date.now());
+      // Mensagem neutra (não revela se email tá cadastrado)
+      toast.success("Se o email estiver cadastrado, você receberá um link em instantes.");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden bg-background text-foreground">
-      {/* Ambient glows — same vibe as LP */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div
-          className="absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full blur-3xl opacity-40"
-          style={{ background: "radial-gradient(circle, #25D366 0%, transparent 60%)" }}
-        />
-        <div
-          className="absolute top-[30%] -right-40 h-[700px] w-[700px] rounded-full blur-3xl opacity-25"
-          style={{ background: "radial-gradient(circle, #06b6d4 0%, transparent 65%)" }}
-        />
-        <div
-          className="absolute bottom-[-200px] left-1/3 h-[500px] w-[500px] rounded-full blur-3xl opacity-20"
-          style={{ background: "radial-gradient(circle, #16A34A 0%, transparent 60%)" }}
-        />
-      </div>
-
       <div className="relative z-10 min-h-screen grid lg:grid-cols-[1.05fr_1fr]">
-        {/* LEFT — brand pane (hidden on mobile) */}
+        {/* LEFT — brand pane */}
         <aside className="hidden lg:flex flex-col justify-between p-10 xl:p-14 border-r border-[color:var(--hairline)] bg-[linear-gradient(160deg,rgba(22,163,74,.10),rgba(34,211,238,.04)_55%,transparent)]">
           <div className="flex items-center gap-3">
             <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -164,7 +135,7 @@ function EntrarPage() {
           <div className="space-y-8 max-w-lg">
             <div className="flex items-center gap-3">
               <div className="size-12 rounded-2xl grid place-items-center bg-gradient-brand text-primary-foreground shadow-[0_10px_30px_-10px_rgba(22,163,74,.6)] ring-1 ring-white/20">
-                <MessageSquareText className="size-6" strokeWidth={2.4} />
+                <MessageCircle className="size-6" strokeWidth={2.4} />
               </div>
               <div>
                 <div className="font-display font-extrabold text-2xl text-gradient-brand leading-none">{brand.name}</div>
@@ -185,13 +156,13 @@ function EntrarPage() {
             <div className="grid gap-3">
               <Feature icon={<Bot className="size-4" />} title="IA treinada no seu negócio" desc="Responde no seu tom, sem parecer robô." />
               <Feature icon={<KanbanSquare className="size-4" />} title="CRM Kanban inteligente" desc="Cada lead se move sozinho pelo funil." />
-              <Feature icon={<MessageCircle className="size-4" />} title="Pronto em 2 minutos" desc="Escaneou o QR, já está atendendo." />
+              <Feature icon={<Mail className="size-4" />} title="Acesso por email" desc="Sem senha — cada login = novo link no seu email." />
             </div>
 
             <div className="flex items-center gap-4 pt-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-[color:var(--brand)]" /> LGPD-friendly</span>
-              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="size-3.5 text-[color:var(--brand)]" /> Sem cartão p/ testar</span>
-              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="size-3.5 text-[color:var(--brand)]" /> Cancele quando quiser</span>
+              <span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-[color:var(--brand)]" /> Sem cartão p/ testar</span>
+              <span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-[color:var(--brand)]" /> Cancele quando quiser</span>
             </div>
           </div>
 
@@ -202,14 +173,13 @@ function EntrarPage() {
 
         {/* RIGHT — form */}
         <main className="flex flex-col items-center justify-center px-5 py-10 sm:px-10">
-          {/* Mobile brand header */}
           <div className="lg:hidden w-full max-w-md mb-6 flex items-center justify-between">
             <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft className="size-4" /> voltar
             </Link>
             <div className="flex items-center gap-2">
               <div className="size-9 rounded-xl grid place-items-center bg-gradient-brand text-primary-foreground shadow-md">
-                <MessageSquareText className="size-4" />
+                <MessageCircle className="size-4" />
               </div>
               <div className="font-display font-bold text-[15px] text-gradient-brand">{brand.name}</div>
             </div>
@@ -217,15 +187,11 @@ function EntrarPage() {
 
           <div className="w-full max-w-md">
             <div className="relative panel p-7 sm:p-8 glow-brand overflow-hidden">
-              {/* corner accent */}
-              <div
-                aria-hidden
-                className="absolute -top-24 -right-24 size-56 rounded-full blur-3xl opacity-50"
-                style={{ background: "radial-gradient(circle, rgba(22,163,74,.35) 0%, transparent 70%)" }}
-              />
+              <div aria-hidden className="absolute -top-24 -right-24 size-56 rounded-full blur-3xl opacity-50"
+                   style={{ background: "radial-gradient(circle, rgba(22,163,74,.35) 0%, transparent 70%)" }} />
 
               <div className="relative">
-                {planInfo && (
+                {planInfo && tab !== "entrar" && (
                   <div className="mb-5 rounded-xl border border-[color:var(--brand)]/30 bg-[color:var(--brand-soft)] p-4">
                     <div className="flex items-center gap-2 text-[11px] uppercase font-bold tracking-[0.14em] text-[color:var(--brand-text)]">
                       <Sparkles className="size-3.5" /> Plano escolhido
@@ -234,67 +200,88 @@ function EntrarPage() {
                       <div className="font-display text-lg font-bold">{planInfo.nome}</div>
                       <div className="text-sm font-semibold">{planInfo.preco}</div>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">3 dias grátis • cancele antes e não paga nada</div>
                   </div>
                 )}
 
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[color:var(--brand-soft)] border border-[color:var(--brand)]/20 text-[11px] font-semibold text-[color:var(--brand-text)] mb-3">
                   <span className="size-1.5 rounded-full bg-[color:var(--brand)] dot-pulse" />
-                  {needsPassword ? "Acesso à conta" : "Cadastro em 1 clique"}
+                  Acesso por email
                 </div>
 
                 <h1 className="font-display text-[26px] sm:text-[28px] font-extrabold leading-tight tracking-tight">
-                  {needsPassword ? "Bem-vindo de volta" : "Comece em 1 clique"}
+                  {tab === "entrar" ? "Bem-vindo de volta" : tab === "criar" ? "Comece agora" : "Recupere o acesso"}
                 </h1>
-                <p className="text-sm text-muted-foreground mt-1.5 mb-6">
-                  {needsPassword
-                    ? "Você já tem conta — informe sua senha pra continuar."
-                    : "Só precisamos do seu e-mail. Criamos a conta na hora e te levamos pro próximo passo."}
+                <p className="text-sm text-muted-foreground mt-1.5 mb-5">
+                  {tab === "entrar" && "Vamos enviar um link de acesso pro seu email."}
+                  {tab === "criar" && "Vamos criar sua conta via link no email."}
                 </p>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="email">E-mail</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => { setEmail(e.target.value); if (needsPassword) setNeedsPassword(false); }}
-                      required
-                      autoFocus
-                      placeholder="voce@empresa.com"
-                      className="h-11"
-                    />
-                  </div>
+                {/* Tabs */}
+                <div className="flex gap-1 p-1 rounded-lg bg-muted/50 mb-5">
+                  <button type="button" onClick={() => switchTab("entrar")}
+                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${tab === "entrar" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                    <Mail className="size-4" /> Entrar
+                  </button>
+                  <button type="button" onClick={() => switchTab("criar")}
+                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${tab === "criar" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                    <Sparkles className="size-4" /> Criar
+                  </button>
+                </div>
 
-                  {needsPassword && (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="pwd">Senha</Label>
-                        <Link to="/esqueci-senha" className="text-[11.5px] font-medium text-muted-foreground hover:text-[color:var(--brand-text)] transition-colors">
-                          Esqueci minha senha
-                        </Link>
-                      </div>
-                      <Input id="pwd" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus required className="h-11" />
+                {sentAt ? (
+                  <Card className="p-5 text-center space-y-4 border-primary/30 bg-primary/5">
+                    <div className="size-14 mx-auto rounded-full bg-primary/10 grid place-items-center">
+                      <Mail className="size-7 text-primary" />
                     </div>
-                  )}
+                    <div className="space-y-2">
+                      <h2 className="font-semibold text-lg">Link enviado!</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Verifique sua caixa de entrada (e o spam) em <strong>{email}</strong>.
+                        Clique no link pra entrar.
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        O link expira em 1 hora.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-2 pt-2">
+                      <Button variant="outline" size="sm" onClick={() => setSentAt(null)}>
+                        Usar outro email
+                      </Button>
+                    </div>
+                  </Card>
+                ) : (
+                  <form onSubmit={(e) => { e.preventDefault(); void sendMagicLink(); }} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email">E-mail</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        autoFocus
+                        placeholder="voce@empresa.com"
+                        className="h-11"
+                      />
+                    </div>
 
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    size="lg"
-                    className="w-full h-12 bg-gradient-brand text-primary-foreground hover:opacity-95 font-semibold text-[14.5px] shadow-[0_8px_24px_-10px_rgba(22,163,74,.6)]"
-                  >
-                    {loading && <Loader2 className="size-4 mr-2 animate-spin" />}
-                    {needsPassword ? "Entrar e continuar" : planInfo ? "Continuar para o pagamento" : "Criar conta grátis"}
-                  </Button>
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      size="lg"
+                      className="w-full h-12 bg-gradient-brand text-primary-foreground hover:opacity-95 font-semibold text-[14.5px] shadow-[0_8px_24px_-10px_rgba(22,163,74,.6)]"
+                    >
+                      {loading && <Loader2 className="size-4 mr-2 animate-spin" />}
+                      {tab === "entrar" && "Enviar link de acesso"}
+                      {tab === "criar" && "Enviar link pra criar conta"}
+                    </Button>
+                  </form>
+                )}
 
-                  {!needsPassword && (
-                    <p className="text-[11.5px] text-muted-foreground text-center pt-1 leading-relaxed">
-                      Sem cartão para começar os <span className="font-semibold text-foreground">3 dias grátis</span>. Cancele quando quiser.
-                    </p>
-                  )}
-                </form>
+                <p className="text-[11px] text-muted-foreground text-center mt-4">
+                  🔒 Privacidade: o sistema não revela se o email está cadastrado —
+                  a mesma mensagem aparece em ambos os casos.
+                </p>
               </div>
             </div>
 

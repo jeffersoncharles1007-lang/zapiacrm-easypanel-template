@@ -26,8 +26,34 @@ function startOfMonthISO(): string {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)).toISOString();
 }
 
+// A empresa do super admin (dono da instância) é liberada como Business.
+async function companyBelongsToSuperAdmin(supabaseAdmin: any, companyId: string): Promise<boolean> {
+  const { data: members } = await supabaseAdmin
+    .from("company_user")
+    .select("user_id")
+    .eq("company_id", companyId)
+    .eq("ativo", true);
+  const ids = (members ?? []).map((m: any) => m.user_id).filter(Boolean);
+  if (!ids.length) return false;
+  const { data: roles } = await supabaseAdmin
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "super_admin")
+    .in("user_id", ids);
+  return (roles ?? []).length > 0;
+}
+
 export async function getCompanyPlan(companyId: string): Promise<CompanyPlan> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // 0) Super admin (dono da instância): tudo liberado, sem limites de plano.
+  if (await companyBelongsToSuperAdmin(supabaseAdmin, companyId)) {
+    return {
+      slug: "business",
+      nome: "Business",
+      limites: { instancias: 999, usuarios: 9999, contatos: 9_999_999, mensagens: 9_999_999 },
+    };
+  }
 
   // 1) Assinatura ativa/trialing → plano vinculado
   const { data: sub } = await supabaseAdmin

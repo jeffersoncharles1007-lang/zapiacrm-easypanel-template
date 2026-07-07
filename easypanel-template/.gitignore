@@ -1,9 +1,14 @@
 node_modules/
 .output/
 dist/
+.vercel/
 *.log
 .env
+.env.*
+!.env.example
 credentials.env
 projeto.zip
 zapiacrm-v1.tar.gz
 *.tar.gz
+.vercel
+.env*

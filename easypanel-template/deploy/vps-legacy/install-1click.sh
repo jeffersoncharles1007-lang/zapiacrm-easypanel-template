@@ -5,13 +5,16 @@
 #   curl -fsSL https://raw.githubusercontent.com/jeffersoncharles1007-lang/zapiacrm-easypanel-template/main/install-1click.sh | bash
 #
 # Pergunta APENAS 1 coisa: o IP/dominio da VPS
-# Credenciais centralizadas sao baixadas de release privado
+# Faz git clone do repositorio inteiro para buildar localmente
 # =============================================================================
 
 set -e
 
 # URL do release com credenciais
 CREDENTIALS_URL="https://github.com/jeffersoncharles1007-lang/zapiacrm-easypanel-template/releases/download/v1.0-credentials/credentials.env"
+
+# URL do repositorio template
+REPO_URL="https://github.com/jeffersoncharles1007-lang/zapiacrm-easypanel-template.git"
 
 # Cores
 RED='\033[0;31m'
@@ -28,7 +31,7 @@ echo "          ZAPIACRM - Instalador Automatico"
 echo "============================================================"
 echo -e "${NC}"
 echo ""
-echo -e "${GREEN}Instalacao em 5 minutos.${NC}"
+echo -e "${GREEN}Instalacao em 10 minutos.${NC}"
 echo -e "${GREEN}Voce so precisa digitar o IP da VPS quando perguntar.${NC}"
 echo ""
 
@@ -42,9 +45,31 @@ else
   echo -e "${GREEN}  ✓ Docker OK${NC}"
 fi
 
-# ===== 2. Baixar credenciais centralizadas =====
+# Verificar git (necessario para clonar)
+if ! command -v git &> /dev/null; then
+  echo "  Instalando git..."
+  apt-get install -y -qq git > /dev/null 2>&1 || yum install -y -q git > /dev/null 2>&1
+  echo -e "${GREEN}  ✓ git instalado${NC}"
+fi
+
+# ===== 2. Limpar instalacao anterior (se existir) =====
 echo ""
-echo -e "${BLUE}[2/5] Baixando credenciais centralizadas...${NC}"
+echo -e "${BLUE}[2/5] Limpando instalacoes anteriores (se houver)...${NC}"
+if [ -d "$INSTALL_DIR" ]; then
+  cd "$INSTALL_DIR"
+  if command -v docker &> /dev/null; then
+    docker compose down -v 2>/dev/null || true
+  fi
+  cd /root
+  rm -rf "$INSTALL_DIR"
+  echo -e "${GREEN}  ✓ Instalacao anterior removida${NC}"
+else
+  echo -e "${GREEN}  ✓ Nenhuma instalacao anterior${NC}"
+fi
+
+# ===== 3. Baixar credenciais centralizadas =====
+echo ""
+echo -e "${BLUE}[3/5] Baixando credenciais centralizadas...${NC}"
 TMP_CREDS=$(mktemp)
 curl -fsSL "$CREDENTIALS_URL" -o "$TMP_CREDS" 2>/dev/null || {
   echo -e "${RED}  ✗ Erro ao baixar credenciais${NC}"
@@ -59,32 +84,30 @@ GOOGLE_CID=$(grep '^GOOGLE_CLIENT_ID=' "$TMP_CREDS" | cut -d= -f2-)
 GOOGLE_SEC=$(grep '^GOOGLE_CLIENT_SECRET=' "$TMP_CREDS" | cut -d= -f2-)
 rm -f "$TMP_CREDS"
 
-# ===== 3. Perguntar o IP/dominio =====
+# ===== 3. Clonar repositorio =====
 echo ""
-echo -e "${BLUE}[3/5] Configuracao${NC}"
+echo -e "${BLUE}[3/5] Clonando repositorio do projeto...${NC}"
+INSTALL_DIR="/opt/zapiacrm"
+rm -rf "$INSTALL_DIR"
+git clone --depth 1 "$REPO_URL" "$INSTALL_DIR" 2>&1 | tail -3
+cd "$INSTALL_DIR"
+echo -e "${GREEN}  ✓ Codigo do projeto baixado${NC}"
+
+# ===== 4. Perguntar SÓ o IP/dominio e criar .env =====
+echo ""
+echo -e "${BLUE}[4/5] Configuracao${NC}"
 echo ""
 echo -e "${CYAN}Qual o IP da VPS ou dominio?${NC}"
 echo -e "${YELLOW}(Ex: 123.456.78.90 ou crm.suaempresa.com.br)${NC}"
 echo -n -e "${YELLOW}→ ${NC}"
 read -r DOMAIN
 
-# ===== 4. Criar arquivos =====
-echo ""
-echo -e "${BLUE}[4/5] Preparando instalacao...${NC}"
-
-# Gerar senhas aleatorias
-DB_PASSWORD=$(openssl rand -hex 16)
+# Gerar senhas aleatorias para o banco
+DB_PASSWORD="zapiacrm2026"
 ANON_KEY="local-anon-$(openssl rand -hex 16)"
 SERVICE_KEY="local-service-$(openssl rand -hex 16)"
 
-INSTALL_DIR="/opt/zapiacrm"
-mkdir -p $INSTALL_DIR
-cd $INSTALL_DIR
-
-# Baixar docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/jeffersoncharles1007-lang/zapiacrm-easypanel-template/main/docker-compose.yml -o docker-compose.yml > /dev/null 2>&1
-
-# Criar .env com credenciais
+# Criar .env
 cat > .env << EOF
 PROJECT_NAME=zapiacrm
 POSTGRES_DB=zapiacrm
@@ -108,20 +131,20 @@ OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
 EOF
 
-echo -e "${GREEN}  ✓ Arquivos prontos${NC}"
+echo -e "${GREEN}  ✓ Configuracao salva${NC}"
 
-# ===== 5. Subir containers =====
+# ===== 5. Subir containers (imagem vem do Docker Hub - build nao necessario) =====
 echo ""
-echo -e "${BLUE}[5/5] Iniciando ZAPIACRM (~5-10 min, nao feche esta janela)...${NC}"
+echo -e "${BLUE}[5/5] Iniciando ZAPIACRM (~1 min, imagem vem do Docker Hub)...${NC}"
 echo "  - Postgres"
 echo "  - Evolution API (WhatsApp)"
 echo "  - ZAPIACRM (app principal)"
 echo ""
-docker compose up -d --build
+docker compose up -d
 
 echo ""
-echo -e "${YELLOW}Aguardando sistema inicializar (~3 min para build)...${NC}"
-for i in {1..60}; do
+echo -e "${YELLOW}Aguardando sistema inicializar (~1 min)...${NC}"
+for i in {1..30}; do
   if curl -s http://localhost:4000 > /dev/null 2>&1; then
     break
   fi
@@ -152,5 +175,11 @@ echo -e "${BLUE}Comandos uteis:${NC}"
 echo "  ${YELLOW}cd /opt/zapiacrm && docker compose logs -f${NC}   # ver logs"
 echo "  ${YELLOW}cd /opt/zapiacrm && docker compose restart${NC}  # reiniciar"
 echo "  ${YELLOW}cd /opt/zapiacrm && docker compose ps${NC}       # ver status"
+echo ""
+echo -e "${BLUE}Credenciais do banco (caso precise):${NC}"
+echo "  Host: postgres (interno) ou localhost (externo)"
+echo "  Database: zapiacrm"
+echo "  User: admin"
+echo "  Password: ${CYAN}zapiacrm2026${NC}"
 echo ""
 echo -e "${GREEN}Sistema funcionando 24/7!${NC}"

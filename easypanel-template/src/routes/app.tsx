@@ -50,7 +50,7 @@ export const Route = createFileRoute("/app")({
       .maybeSingle();
 
     if (!cu) {
-      if (isSuperAdmin) throw redirect({ to: "/master/painel" });
+      if (isSuperAdmin) throw redirect({ to: "/master/welcome" });
       if (location.pathname !== "/app/checkout") throw redirect({ to: "/app/checkout" });
       return { user: { id: u.user.id, email: u.user.email }, company: null, membership: null, isSuperAdmin, impersonating: false };
     }

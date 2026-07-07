@@ -18,7 +18,9 @@ async function getCompanyAndPlan(supabase: any, userId: string) {
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const planSlug = String(sub?.plan?.nome || "starter").toLowerCase();
+  // Super admin (dono da instância) = tudo liberado (Business).
+  const { data: isSA } = await supabase.rpc("is_super_admin");
+  const planSlug = isSA ? "business" : String(sub?.plan?.nome || "starter").toLowerCase();
   return { companyId: cu.company_id, role: cu.role, company: cu.company, planSlug };
 }
 

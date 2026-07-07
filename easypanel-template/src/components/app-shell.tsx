@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { brand, supportWhatsappUrl, supportWhatsappDisplay } from "@/config/brand";
+import { Logo } from "@/components/brand/Logo";
 import { TrialBanner } from "@/components/trial-banner";
 import { CreditsBadge } from "@/components/credits-badge";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -104,12 +105,7 @@ export function AppShell({
           {company?.logo_url ? (
             <img src={company.logo_url} alt={company.nome} className="size-8 rounded-lg object-cover ring-1 ring-[color:var(--hairline)]" />
           ) : (
-            <div
-              className="size-8 rounded-lg grid place-items-center text-primary-foreground shrink-0"
-              style={{ background: `linear-gradient(135deg, ${primary}, var(--brand-strong))` }}
-            >
-              <MessageCircle className="size-4" strokeWidth={2.5} fill="currentColor" />
-            </div>
+            <Logo className="h-7" />
           )}
           <div className="min-w-0">
             <div className="font-display font-bold tracking-tight text-[14.5px] leading-none truncate">{brand.name}</div>
@@ -172,12 +168,7 @@ function Sidebar({
         {company?.logo_url ? (
           <img src={company.logo_url} alt={company.nome} className="size-10 rounded-xl object-cover ring-1 ring-[color:var(--hairline)]" />
         ) : (
-          <div
-            className="size-10 rounded-xl grid place-items-center text-primary-foreground shadow-md ring-1 ring-[color:var(--hairline)]"
-            style={{ background: `linear-gradient(135deg, ${primary}, var(--brand-strong))` }}
-          >
-            <MessageCircle className="size-5" strokeWidth={2.5} fill="currentColor" />
-          </div>
+          <Logo className="h-9" />
         )}
         <div className="min-w-0">
           <div className="font-display font-extrabold tracking-tight truncate text-[16px]">{brand.name}</div>

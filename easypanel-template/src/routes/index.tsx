@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { brand } from "@/config/brand";
+import { Logo } from "@/components/brand/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import {
@@ -29,8 +30,7 @@ export const Route = createFileRoute("/")({
       { title: `${brand.name} — IA atende seu WhatsApp 24h e organiza o CRM sozinha` },
       {
         name: "description",
-        content:
-          "Conecte seu número de WhatsApp em 2 minutos. A IA do ZAPIACRM responde, qualifica e move cada lead no funil automaticamente. 3 dias grátis para testar.",
+        content: `Conecte seu número de WhatsApp em 2 minutos. A IA do ${brand.name} responde, qualifica e move cada lead no funil automaticamente. 3 dias grátis para testar.`,
       },
       { property: "og:title", content: `${brand.name} — WhatsApp + IA + CRM no automático` },
       {
@@ -286,12 +286,7 @@ function Header({
     <header className="lp-header sticky top-0 z-50 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 sm:px-5 md:px-8 h-[4.5rem] md:h-20 flex items-center justify-between gap-3">
         <a href="/" className="flex items-center gap-2.5">
-          <span className="grid h-10 w-10 md:h-11 md:w-11 place-items-center rounded-2xl btn-glow" style={{ background: "linear-gradient(135deg,#25D366,#16a34a)" }}>
-            <MessageCircle className="size-5 text-black" strokeWidth={2.6} />
-          </span>
-          <span className="font-brand text-[1.5rem] md:text-[1.7rem] leading-none">
-            Atende<span className="text-grad">Zap</span>
-          </span>
+          <Logo className="h-8 md:h-9" />
         </a>
         <nav className="hidden md:flex items-center gap-8 text-[15px] font-semibold text-white/70">
           <a href="#como" className="hover:text-white transition">Como funciona</a>
@@ -403,11 +398,9 @@ function PhoneMock() {
           </div>
           {/* chat header */}
           <div className="flex items-center gap-3 px-4 py-3" style={{ background: "var(--lp-chat-header-bg)", borderBottom: "1px solid var(--lp-chat-header-bd)" }}>
-            <div className="grid place-items-center size-9 rounded-full text-black font-bold" style={{ background: "linear-gradient(135deg,#25D366,#16a34a)" }}>
-              A
-            </div>
+            <Logo className="h-7" />
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold truncate">ZAPIACRM • IA</div>
+              <div className="text-sm font-semibold truncate">{brand.name} • IA</div>
               <div className="text-[10px] text-[#25D366] flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-[#25D366]" /> online agora
               </div>
@@ -521,7 +514,7 @@ function Pain() {
         </h2>
         <p className="mt-6 text-lg md:text-xl text-white/65 leading-relaxed">
           A primeira empresa a responder vende. Sempre. Enquanto você está dirigindo, atendendo na loja
-          ou dormindo, os leads do anúncio que você pagou estão sumindo na fila. O ZAPIACRM responde
+          ou dormindo, os leads do anúncio que você pagou estão sumindo na fila. O {brand.name} responde
           em segundos, qualifica e já te entrega o lead pronto pra fechar.
         </p>
       </div>
@@ -837,10 +830,7 @@ function Footer() {
         <div className="grid gap-10 md:gap-8 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl btn-glow" style={{ background: "linear-gradient(135deg,#25D366,#16a34a)" }}>
-                <MessageCircle className="size-4 text-black" strokeWidth={2.6} />
-              </span>
-              <span className="font-brand text-[1.4rem] leading-none">Atende<span className="text-grad">Zap</span></span>
+              <Logo className="h-9" />
             </div>
             <p className="mt-4 text-sm text-white/55 leading-relaxed max-w-xs">
               IA que atende seu WhatsApp 24h, qualifica e organiza o CRM sozinha. Você só fecha.

@@ -37,10 +37,22 @@ export async function lovableAiChat(
     const model = cfg.model || "claude-3-5-sonnet-latest";
     return anthropicChat(key, model, messages);
   }
-  // default: Gemini via Lovable Gateway
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("LOVABLE_API_KEY ausente.");
+  // default: Gemini
   const model = cfg.model || "google/gemini-2.5-flash";
+
+  // 1) API oficial do Google (self-host / white-label) via GOOGLE_API_KEY.
+  const googleKey = (process.env.GOOGLE_API_KEY || process.env.VITE_GOOGLE_API_KEY || "").trim();
+  if (googleKey) {
+    return geminiDirectChat(googleKey, model, messages);
+  }
+
+  // 2) Fallback: Lovable Gateway (funciona apenas dentro do Lovable).
+  const key = process.env.LOVABLE_API_KEY;
+  if (!key) {
+    throw new Error(
+      "IA não configurada. Defina GOOGLE_API_KEY (Gemini) nas variáveis de ambiente da hospedagem, ou configure uma chave OpenAI/Anthropic no painel do Agente IA.",
+    );
+  }
   const res = await fetch(GATEWAY, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
@@ -54,6 +66,32 @@ export async function lovableAiChat(
   }
   const data = await res.json();
   return data?.choices?.[0]?.message?.content?.toString().trim() || "";
+}
+
+// Chamada direta à Generative Language API do Google (Gemini), sem gateway.
+async function geminiDirectChat(key: string, model: string, messages: ChatMsg[]): Promise<string> {
+  const m = model.replace(/^google\//, ""); // "google/gemini-2.5-flash" -> "gemini-2.5-flash"
+  const system = messages.filter((x) => x.role === "system").map((x) => x.content).join("\n\n");
+  const contents = messages
+    .filter((x) => x.role !== "system")
+    .map((x) => ({ role: x.role === "assistant" ? "model" : "user", parts: [{ text: x.content }] }));
+  const body: any = { contents };
+  if (system) body.system_instruction = { parts: [{ text: system }] };
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+  );
+  if (!res.ok) {
+    const t = await res.text();
+    if (res.status === 429) throw new Error("Limite de uso da IA (Gemini) atingido. Tente em alguns minutos.");
+    throw new Error(`Google Gemini: ${res.status} ${t.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  return (data?.candidates?.[0]?.content?.parts || [])
+    .map((p: any) => p?.text || "")
+    .join("")
+    .trim();
 }
 
 async function openAiChat(key: string, model: string, messages: ChatMsg[]): Promise<string> {

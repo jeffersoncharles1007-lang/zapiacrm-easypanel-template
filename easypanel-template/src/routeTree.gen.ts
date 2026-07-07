@@ -18,10 +18,12 @@ import { Route as MasterRouteImport } from './routes/master'
 import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as DemoRouteImport } from './routes/demo'
+import { Route as CallbackRouteImport } from './routes/callback'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MasterIndexRouteImport } from './routes/master/index'
 import { Route as DemoIndexRouteImport } from './routes/demo/index'
+import { Route as MasterWelcomeRouteImport } from './routes/master/welcome'
 import { Route as MasterPlanosRouteImport } from './routes/master/planos'
 import { Route as MasterPainelRouteImport } from './routes/master/painel'
 import { Route as MasterNovaEmpresaRouteImport } from './routes/master/nova-empresa'
@@ -58,6 +60,7 @@ import { Route as AppAgenteRouteImport } from './routes/app/agente'
 import { Route as AppAgenteAvancadoRouteImport } from './routes/app/agente.avancado'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp-webhook'
 import { Route as ApiPublicGoogleCallbackRouteImport } from './routes/api/public/google-callback'
+import { Route as ApiDebugOtpRouteImport } from './routes/api/debug/otp'
 import { Route as ApiPublicV1SplatRouteImport } from './routes/api/public/v1/$'
 import { Route as ApiPublicHooksProcessCampaignsRouteImport } from './routes/api/public/hooks/process-campaigns'
 import { Route as ApiPublicBillingWebhookRouteImport } from './routes/api/public/billing/webhook'
@@ -107,6 +110,11 @@ const DemoRoute = DemoRouteImport.update({
   path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CallbackRoute = CallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
@@ -126,6 +134,11 @@ const DemoIndexRoute = DemoIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DemoRoute,
+} as any)
+const MasterWelcomeRoute = MasterWelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => MasterRoute,
 } as any)
 const MasterPlanosRoute = MasterPlanosRouteImport.update({
   id: '/planos',
@@ -308,6 +321,11 @@ const ApiPublicGoogleCallbackRoute = ApiPublicGoogleCallbackRouteImport.update({
   path: '/api/public/google-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDebugOtpRoute = ApiDebugOtpRouteImport.update({
+  id: '/api/debug/otp',
+  path: '/api/debug/otp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicV1SplatRoute = ApiPublicV1SplatRouteImport.update({
   id: '/api/public/v1/$',
   path: '/api/public/v1/$',
@@ -328,6 +346,7 @@ const ApiPublicBillingWebhookRoute = ApiPublicBillingWebhookRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/callback': typeof CallbackRoute
   '/demo': typeof DemoRouteWithChildren
   '/entrar': typeof EntrarRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
@@ -370,8 +389,10 @@ export interface FileRoutesByFullPath {
   '/master/nova-empresa': typeof MasterNovaEmpresaRoute
   '/master/painel': typeof MasterPainelRoute
   '/master/planos': typeof MasterPlanosRoute
+  '/master/welcome': typeof MasterWelcomeRoute
   '/demo/': typeof DemoIndexRoute
   '/master/': typeof MasterIndexRoute
+  '/api/debug/otp': typeof ApiDebugOtpRoute
   '/api/public/google-callback': typeof ApiPublicGoogleCallbackRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/app/agente/avancado': typeof AppAgenteAvancadoRoute
@@ -382,6 +403,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/callback': typeof CallbackRoute
   '/entrar': typeof EntrarRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -422,8 +444,10 @@ export interface FileRoutesByTo {
   '/master/nova-empresa': typeof MasterNovaEmpresaRoute
   '/master/painel': typeof MasterPainelRoute
   '/master/planos': typeof MasterPlanosRoute
+  '/master/welcome': typeof MasterWelcomeRoute
   '/demo': typeof DemoIndexRoute
   '/master': typeof MasterIndexRoute
+  '/api/debug/otp': typeof ApiDebugOtpRoute
   '/api/public/google-callback': typeof ApiPublicGoogleCallbackRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/app/agente/avancado': typeof AppAgenteAvancadoRoute
@@ -435,6 +459,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/callback': typeof CallbackRoute
   '/demo': typeof DemoRouteWithChildren
   '/entrar': typeof EntrarRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
@@ -477,8 +502,10 @@ export interface FileRoutesById {
   '/master/nova-empresa': typeof MasterNovaEmpresaRoute
   '/master/painel': typeof MasterPainelRoute
   '/master/planos': typeof MasterPlanosRoute
+  '/master/welcome': typeof MasterWelcomeRoute
   '/demo/': typeof DemoIndexRoute
   '/master/': typeof MasterIndexRoute
+  '/api/debug/otp': typeof ApiDebugOtpRoute
   '/api/public/google-callback': typeof ApiPublicGoogleCallbackRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/app/agente/avancado': typeof AppAgenteAvancadoRoute
@@ -491,6 +518,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/callback'
     | '/demo'
     | '/entrar'
     | '/esqueci-senha'
@@ -533,8 +561,10 @@ export interface FileRouteTypes {
     | '/master/nova-empresa'
     | '/master/painel'
     | '/master/planos'
+    | '/master/welcome'
     | '/demo/'
     | '/master/'
+    | '/api/debug/otp'
     | '/api/public/google-callback'
     | '/api/public/whatsapp-webhook'
     | '/app/agente/avancado'
@@ -545,6 +575,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
+    | '/callback'
     | '/entrar'
     | '/esqueci-senha'
     | '/privacidade'
@@ -585,8 +616,10 @@ export interface FileRouteTypes {
     | '/master/nova-empresa'
     | '/master/painel'
     | '/master/planos'
+    | '/master/welcome'
     | '/demo'
     | '/master'
+    | '/api/debug/otp'
     | '/api/public/google-callback'
     | '/api/public/whatsapp-webhook'
     | '/app/agente/avancado'
@@ -597,6 +630,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/callback'
     | '/demo'
     | '/entrar'
     | '/esqueci-senha'
@@ -639,8 +673,10 @@ export interface FileRouteTypes {
     | '/master/nova-empresa'
     | '/master/painel'
     | '/master/planos'
+    | '/master/welcome'
     | '/demo/'
     | '/master/'
+    | '/api/debug/otp'
     | '/api/public/google-callback'
     | '/api/public/whatsapp-webhook'
     | '/app/agente/avancado'
@@ -652,6 +688,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  CallbackRoute: typeof CallbackRoute
   DemoRoute: typeof DemoRouteWithChildren
   EntrarRoute: typeof EntrarRoute
   EsqueciSenhaRoute: typeof EsqueciSenhaRoute
@@ -662,6 +699,7 @@ export interface RootRouteChildren {
   TermosRoute: typeof TermosRoute
   TrocarSenhaRoute: typeof TrocarSenhaRoute
   CsatTokenRoute: typeof CsatTokenRoute
+  ApiDebugOtpRoute: typeof ApiDebugOtpRoute
   ApiPublicGoogleCallbackRoute: typeof ApiPublicGoogleCallbackRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   ApiPublicBillingWebhookRoute: typeof ApiPublicBillingWebhookRoute
@@ -734,6 +772,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/callback': {
+      id: '/callback'
+      path: '/callback'
+      fullPath: '/callback'
+      preLoaderRoute: typeof CallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app': {
       id: '/app'
       path: '/app'
@@ -761,6 +806,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/demo/'
       preLoaderRoute: typeof DemoIndexRouteImport
       parentRoute: typeof DemoRoute
+    }
+    '/master/welcome': {
+      id: '/master/welcome'
+      path: '/welcome'
+      fullPath: '/master/welcome'
+      preLoaderRoute: typeof MasterWelcomeRouteImport
+      parentRoute: typeof MasterRoute
     }
     '/master/planos': {
       id: '/master/planos'
@@ -1014,6 +1066,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGoogleCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/debug/otp': {
+      id: '/api/debug/otp'
+      path: '/api/debug/otp'
+      fullPath: '/api/debug/otp'
+      preLoaderRoute: typeof ApiDebugOtpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/v1/$': {
       id: '/api/public/v1/$'
       path: '/api/public/v1/$'
@@ -1127,6 +1186,7 @@ interface MasterRouteChildren {
   MasterNovaEmpresaRoute: typeof MasterNovaEmpresaRoute
   MasterPainelRoute: typeof MasterPainelRoute
   MasterPlanosRoute: typeof MasterPlanosRoute
+  MasterWelcomeRoute: typeof MasterWelcomeRoute
   MasterIndexRoute: typeof MasterIndexRoute
 }
 
@@ -1137,6 +1197,7 @@ const MasterRouteChildren: MasterRouteChildren = {
   MasterNovaEmpresaRoute: MasterNovaEmpresaRoute,
   MasterPainelRoute: MasterPainelRoute,
   MasterPlanosRoute: MasterPlanosRoute,
+  MasterWelcomeRoute: MasterWelcomeRoute,
   MasterIndexRoute: MasterIndexRoute,
 }
 
@@ -1146,6 +1207,7 @@ const MasterRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  CallbackRoute: CallbackRoute,
   DemoRoute: DemoRouteWithChildren,
   EntrarRoute: EntrarRoute,
   EsqueciSenhaRoute: EsqueciSenhaRoute,
@@ -1156,6 +1218,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermosRoute: TermosRoute,
   TrocarSenhaRoute: TrocarSenhaRoute,
   CsatTokenRoute: CsatTokenRoute,
+  ApiDebugOtpRoute: ApiDebugOtpRoute,
   ApiPublicGoogleCallbackRoute: ApiPublicGoogleCallbackRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   ApiPublicBillingWebhookRoute: ApiPublicBillingWebhookRoute,
