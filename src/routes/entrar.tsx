@@ -93,43 +93,57 @@ function EntrarPage() {
     }
 
     const generated = genStrongPassword();
-    const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-      email,
-      password: generated,
-      options: { emailRedirectTo: window.location.origin + (search.plano ? `/app/checkout?plano=${search.plano}` : "/app/dashboard") },
-    });
 
-    if (signUpErr) {
-      const msg = (signUpErr.message || "").toLowerCase();
-      if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
+    // Create user via our server route (uses service_role admin API to bypass
+    // the Free-tier rate limit on public supabase.auth.signUp).
+    let signupResult: { ok: true; userId: string } | { ok: false; error: string };
+    try {
+      const res = await fetch("/api/public/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password: generated,
+          redirectTo: search.plano ? `/app/checkout?plano=${search.plano}` : "/app/dashboard",
+        }),
+      });
+      const data = (await res.json()) as { user_id?: string; error?: string };
+      if (!res.ok || !data.user_id) {
+        signupResult = { ok: false, error: data.error ?? `signup_failed_${res.status}` };
+      } else {
+        signupResult = { ok: true, userId: data.user_id };
+      }
+    } catch (err) {
+      signupResult = { ok: false, error: (err as Error).message || "network_error" };
+    }
+
+    if (!signupResult.ok) {
+      const errMsg = signupResult.error.toLowerCase();
+      if (errMsg.includes("already")) {
         setNeedsPassword(true);
         setLoading(false);
         toast.message("Já existe uma conta com esse e-mail.", { description: "Digite sua senha para continuar." });
         return;
       }
-      if (msg.includes("signups not allowed") || msg.includes("signup_disabled") || msg.includes("signup is disabled")) {
+      if (errMsg.includes("not allowed") || errMsg.includes("disabled")) {
         setNeedsPassword(true);
         setLoading(false);
         toast.message("Cadastros novos estão desativados.", { description: "Se você já tem conta, digite sua senha para entrar." });
         return;
       }
       setLoading(false);
-      return toast.error(signUpErr.message);
+      return toast.error(signupResult.error);
     }
 
-    if (signUpData.session) {
-      setLoading(false);
-      toast.success("Conta criada! Vamos para o pagamento.");
-      return routeAfterAuth();
-    }
-
+    // User created server-side. Now establish a client session via password sign-in.
     const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password: generated });
     setLoading(false);
     if (signInErr) {
-      toast.success("Enviamos um link de confirmação para o seu e-mail.");
+      toast.success("Conta criada! Faça login para continuar.");
+      setNeedsPassword(true);
       return;
     }
-    toast.success("Conta criada!");
+    toast.success("Conta criada! Vamos para o pagamento.");
     routeAfterAuth();
   }
 
