@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Plus, X, Save, Copy, CheckCircle2, AlertCircle, BookOpen, Zap } from "lucide-react";
+import { Loader2, Plus, X, Save, Copy, CheckCircle2, AlertCircle, BookOpen, Zap, MessageCircle } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { brand } from "@/config/brand";
 import { getSuperAdminEmails, setSuperAdminEmails } from "@/lib/master.functions";
