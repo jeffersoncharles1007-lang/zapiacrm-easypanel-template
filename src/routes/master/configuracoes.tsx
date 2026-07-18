@@ -59,7 +59,8 @@ function ConfigPage() {
     finally { setSaving(false); }
   }
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const [origin, setOrigin] = useState("");
+  useEffect(() => { setOrigin(window.location.origin); }, []);
   const url = (provider: "kiwify" | "cakto" | "perfectpay") =>
     tokens?.[provider]
       ? `${origin}/api/public/billing/webhook?provider=${provider}&token=${tokens[provider]}`
