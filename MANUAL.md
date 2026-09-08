@@ -1,235 +1,554 @@
-# 📘 Manual do Clonador — ZAPIACRM AI
+# MANUAL TECNICO — ZAPIACRM
 
-Guia passo a passo para colocar sua cópia no ar. **Siga na ordem.** Onde tiver bloco `> PROMPT`, **copie e cole no chat do Lovable** exatamente como está.
-
----
-
-## ✅ Passo 1 — Ativar o backend (Lovable Cloud)
-
-O backend (banco, autenticação, storage) **não vem junto na clonagem**. Você precisa criar o seu.
-
-**Cole no chat do Lovable:**
-
-> **PROMPT 1:**
-> ```
-> Ative o Lovable Cloud neste projeto e rode todas as migrations existentes em supabase/migrations na ordem. Confirme quando todas as tabelas (company, company_user, user_roles, plan, agent_config, mensagens, whatsapp_instances, google_integration, crm_stage, crm_cards, etc.) estiverem criadas.
-> ```
-
-⏱ Aguarde ~30s. O Lovable vai criar o backend e aplicar todas as migrations.
+> **Para:** Dev/empreendedor que comprou o codigo-fonte ZAPIACRM
+> **Quando ler:** Apos checkout do codigo, antes do primeiro deploy
+> **Resultado esperado:** Deploy funcional end-to-end em 2-4h
 
 ---
 
-## ✅ Passo 2 — Configurar os Secrets obrigatórios
+## Sumario
 
-**Cole no chat:**
-
-> **PROMPT 2:**
-> ```
-> Preciso configurar os secrets do projeto. Abra o formulário para eu inserir os valores destes secrets:
-> - EVOLUTION_API_URL
-> - EVOLUTION_API_KEY
-> - GOOGLE_CLIENT_ID
-> - GOOGLE_CLIENT_SECRET
-> ```
-
-| Secret | Onde obter |
-|---|---|
-| `EVOLUTION_API_URL` | URL da sua instância Evolution API (ex: `https://evo.seudominio.com`) |
-| `EVOLUTION_API_KEY` | API key gerada no painel da Evolution |
-| `GOOGLE_CLIENT_ID` / `SECRET` | Google Cloud Console → Credenciais OAuth 2.0 |
-
-> `LOVABLE_API_KEY` já é injetado automaticamente. Paddle só se for usar cobrança automática.
+1. [Pre-deploy](#cap-1--pre-deploy-contas--custos)
+2. [Deploy Vercel](#cap-2--deploy-vercel)
+3. [Configurar Supabase](#cap-3--configurar-supabase)
+4. [Variaveis de ambiente](#cap-4--variaveis-de-ambiente)
+5. [SMTP Titan](#cap-5--smtp-titan)
+6. [WhatsApp Evolution API](#cap-6--whatsapp-evolution-api)
+7. [Billing (Kiwify/Cakto/PerfectPay)](#cap-7--billing-kiwifycakto-perfectpay)
+8. [White-label (marca)](#cap-8--white-label-marca)
+9. [Primeiro admin master](#cap-9--primeiro-admin-master)
+10. [Troubleshooting](#cap-10--troubleshooting)
 
 ---
 
-## ✅ Passo 3 — Tornar-se o Super Admin (Master)
+## Cap 1 — Pre-deploy (contas + custos)
 
-⚠️ **Isso tem que ser feito ANTES de qualquer outra pessoa se cadastrar.** O sistema promove automaticamente o **primeiro usuário** a `super_admin`.
+### Contas que voce precisa criar (todas gratis, exceto VPS Evolution)
 
-1. Abra a URL pública do seu projeto (canto superior direito do Lovable → "Open Preview")
-2. Clique em **"Entrar"** → **"Criar conta"**
-3. Cadastre com o e-mail que será o Master (ex: `admin@suamarca.com`)
-4. Confirme o e-mail (caixa de entrada)
-5. Faça login → acesse `/master/painel` → você é o Master ✅
+| Conta | Site | Custo | Uso |
+|-------|------|-------|-----|
+| **Vercel** | vercel.com | Gratis (Hobby) | Hospeda o app |
+| **Supabase** | supabase.com | Gratis (Free) | Banco + auth |
+| **GitHub** | github.com | Gratis | Versionamento |
+| **Titan Email** | titan.email | Gratis (500 emails/dia) | SMTP transacional |
+| **Google AI Studio** | aistudio.google.com | Gratis (rate limit) | Gemini (IA) |
+| **VPS para Evolution** | hostinger.com.br | ~R$ 30/mes | WhatsApp multi-device |
 
-### Se errou (outra pessoa virou master antes)
+### Tempo estimado
 
-**Cole no chat:**
+- Criar contas: 30-45 min
+- Deploy basico: 1-2 horas
+- Configurar billing/whatsapp: 1 hora
+- Customizar marca: 30 min
 
-> **PROMPT 3 (recuperação):**
-> ```
-> Rode esta query SQL no banco para me promover a super_admin:
->
-> INSERT INTO public.user_roles (user_id, role)
-> SELECT id, 'super_admin'::app_role FROM auth.users WHERE email = 'SEU@EMAIL.COM'
-> ON CONFLICT (user_id, role) DO NOTHING;
->
-> UPDATE public.app_config SET super_admin_emails = ARRAY['SEU@EMAIL.COM'] WHERE id = true;
-> ```
-> (substitua `SEU@EMAIL.COM` pelo seu e-mail real antes de enviar)
+### Fork do repositorio
 
----
-
-## ✅ Passo 4 — Personalizar a marca
-
-**Cole no chat:**
-
-> **PROMPT 4:**
-> ```
-> Quero personalizar a marca do sistema. Abra o arquivo src/config/brand.ts e troque:
-> - nome do produto para "MEU PRODUTO"
-> - cor primária para #HEXAQUI
-> - logo (se eu enviar uma imagem depois)
-> Depois quero que você ajuste o favicon e o <title> da página em src/routes/__root.tsx.
-> ```
-
----
-
-## ✅ Passo 5 — Criar os Planos comerciais
-
-1. No app, vá em `/master/planos`
-2. Clique **"Novo plano"**
-3. Defina: nome, preço mensal, limite de mensagens/mês, nº de atendentes, features liberadas
-4. Crie pelo menos 1 plano "Trial" gratuito (7 dias) e 1 pago
-
----
-
-## ✅ Passo 6 — Criar a primeira empresa-cliente
-
-Em `/master/nova-empresa`:
-- Nome da empresa
-- E-mail do dono (owner)
-- Plano (do passo 5)
-- Sistema envia senha provisória por e-mail
-
-O cliente faz login → troca a senha → completa o **onboarding (4 passos)** → conecta WhatsApp via QR Code.
-
----
-
-## ✅ Passo 7 — (Opcional) Cobrança automática via Paddle
-
-Só faça se quiser cobrar cartão automaticamente.
-
-**Cole no chat:**
-
-> **PROMPT 7:**
-> ```
-> Quero ativar a cobrança automática via Paddle. Me ajude a:
-> 1. Configurar o secret PADDLE_LIVE_API_KEY (ou PADDLE_SANDBOX_API_KEY para testar)
-> 2. Configurar o webhook do Paddle apontando para /api/public/billing/webhook
-> 3. Mapear meus planos do passo 5 com os price IDs do Paddle
-> ```
-
----
-
-## ✅ Passo 8 — (Opcional) Integração Google Agenda
-
-Já está pronta no código. Só precisa do **Passo 2** ter sido feito + adicionar o redirect URI no Google Cloud Console:
-
-```
-https://zapiacrm.live/api/public/google-callback
+```bash
+# No GitHub: clique "Fork" em jeffersoncharles1007-lang/zapiacrm-easypanel-template
+# Depois clone seu fork:
+git clone https://github.com/SEU-USER/zapiacrm-easypanel-template
+cd zapiacrm-easypanel-template
+bun install
 ```
 
-Cada cliente conecta a própria conta em `/app/agente/avancado` → botão "Conectar Google Agenda".
+---
+
+## Cap 2 — Deploy Vercel
+
+### 2.1 — Importar projeto
+
+1. Acesse https://vercel.com/new
+2. Selecione "Import Git Repository"
+3. Conecte seu fork
+4. **Framework Preset:** TanStack Start (auto-detectado)
+5. **Root Directory:** `.` (raiz)
+6. **Build Command:** `bun run build:vercel` (ja configurado em `vercel.json`)
+7. **Install Command:** `bun install --frozen-lockfile` (ja configurado)
+8. **Output Directory:** deixar vazio (Nitro cuida)
+
+### 2.2 — Configurar env vars iniciais (antes do primeiro deploy)
+
+No painel Vercel: **Settings → Environment Variables**.
+
+Adicione pelo menos estas 4 (o resto voce adiciona depois):
+
+```
+SUPABASE_URL                 = https://[seu-projeto].supabase.co
+SUPABASE_PUBLISHABLE_KEY     = eyJhbGc... (anon key)
+SUPABASE_SERVICE_ROLE_KEY    = eyJhbGc... (service_role)
+SUPABASE_PROJECT_ID          = [seu-ref]
+APP_ORIGIN                   = https://[seu-deploy].vercel.app
+```
+
+### 2.3 — Deploy
+
+Clique **Deploy**. Primeiro build demora ~2-3 min. Acompanhe em **Deployments** → selecione → **Building**.
+
+**Validação**: deployment termina com status **Ready**, URL gerada (ex: `zapiacrm-xyz.vercel.app`).
 
 ---
 
-## ✅ Passo 9 — Publicar
+## Cap 3 — Configurar Supabase
 
-No topo do Lovable → botão **"Publish"** → confirme.
+### 3.1 — Criar projeto
 
-Sua URL: `https://zapiacrm.live`
-Para domínio próprio: Project Settings → Domains.
+1. Acesse https://supabase.com/dashboard
+2. **New Project**:
+   - Name: `zapiacrm-clienteX` (ou seu nome)
+   - Database Password: **salve em gerenciador de senhas**
+   - Region: **sa-east-1 (Sao Paulo)** ou **us-east-1 (Virginia)**
+3. Aguarde ~2 min ate provisionar
 
----
+### 3.2 — Rodar SQL de setup
 
-# 🗺️ Guia rápido de uso
+1. No projeto, va em **SQL Editor** (menu lateral)
+2. **New Query**
+3. Copie TODO o conteudo de `SETUP_REPLICAVEL.sql` (26 KB)
+4. Cole no editor
+5. Clique **Run** (Ctrl+Enter)
+6. Aguarde **~3-5 min** (são 25+ migrations consolidadas)
+7. Resultado esperado: `Success. No rows returned` (DDL nao retorna dados)
 
-## Como Master (`/master/*`)
-| Tela | O que faz |
-|---|---|
-| **Painel** | KPIs gerais: MRR, empresas ativas, churn |
-| **Empresas** | Listar, suspender, **impersonar** (entrar como a empresa pra dar suporte) |
-| **Assinaturas** | Ver cobranças, marcar manual como paga |
-| **Planos** | Criar/editar planos comerciais e limites |
-| **Nova empresa** | Cadastro manual de cliente |
-| **Configurações** | Branding global, lista de super admins |
-
-## Como Cliente (`/app/*`)
-| Tela | O que faz |
-|---|---|
-| **Dashboard** | KPIs do dia, conversas em andamento |
-| **Conexão** | Escanear QR Code WhatsApp (⚠ não feche durante o scan) |
-| **Agente** | Tom de voz, conhecimento, horário |
-| **Agente Avançado** | Prompt customizado + Google Agenda |
-| **Conversas** | Inbox unificada, pausar IA por contato |
-| **CRM** | Kanban: Conversas → Negociando → Ganho/Perda |
-| **Contatos** | Base de leads, tags |
-| **Relatórios** | Conversões, tempo médio, ranking |
-| **Equipe** | Convidar atendentes (owner/admin/atendente) |
-| **Configurações** | Dados da empresa, identidade visual, plano |
-
----
-
-# ⚠️ Boas práticas WhatsApp (evitar banimento)
-
-Já implementado no código, mas oriente seus clientes:
-
-- ✅ **Aquecer chip novo** — 1 a 2 semanas só recebendo antes de disparar
-- ✅ **Não fazer disparo em massa** para contatos que nunca falaram (sistema bloqueia fora da janela de 24h)
-- ✅ **Respeitar opt-out** — palavras "parar", "cancelar", "stop" pausam a IA automaticamente
-- ✅ **Rate limit ativo** — 6 msgs/10min por contato, 20/min por empresa
-- ❌ Não use o sistema para spam frio — risco alto de banimento permanente do número
-
-Para volumes grandes ou clientes premium, considere migrar para a **WhatsApp Business Cloud API oficial** (sem risco de ban).
-
----
-
-# 🆘 Comandos SQL úteis
-
-Cole no chat:
-
-> **PROMPT SQL:**
-> ```
-> Rode esta query: <COLE A QUERY AQUI>
-> ```
+### 3.3 — Validar setup
 
 ```sql
--- Ver todos os super admins
-SELECT u.email FROM auth.users u
-JOIN user_roles r ON r.user_id = u.id WHERE r.role = 'super_admin';
+-- Deve retornar 34 tabelas
+SELECT count(*) FROM information_schema.tables
+WHERE table_schema = 'public';
 
--- Resetar onboarding de uma empresa
-UPDATE company SET onboarding_completed = false WHERE id = '<uuid>';
+-- Deve retornar 3 planos (starter/pro/business)
+SELECT slug, nome, preco_cents FROM public.plan;
 
--- Suspender empresa por inadimplência
-UPDATE company SET status_cobranca = 'suspenso' WHERE id = '<uuid>';
+-- Deve retornar 1 linha
+SELECT * FROM pg_publication WHERE pubname = 'supabase_realtime';
+```
 
--- Reativar empresa
-UPDATE company SET status_cobranca = 'ativo' WHERE id = '<uuid>';
+### 3.4 — Configurar Auth URL
 
--- Listar empresas com nº de mensagens do mês
-SELECT c.nome, COUNT(m.id) AS msgs_mes
-FROM company c
-LEFT JOIN mensagens m ON m.company_id = c.id
-  AND m.created_at >= date_trunc('month', now())
-GROUP BY c.id ORDER BY msgs_mes DESC;
+**Authentication → URL Configuration**:
+
+- **Site URL**: `https://[seu-deploy].vercel.app`
+- **Redirect URLs** (uma por linha):
+  ```
+  https://[seu-deploy].vercel.app/entrar/callback
+  https://[seu-deploy].vercel.app/entrar
+  https://[seu-deploy].vercel.app/app/**
+  https://[seu-deploy].vercel.app/master/**
+  ```
+
+Clique **Save**.
+
+### 3.5 — Coletar credenciais
+
+**Settings → API**:
+
+```
+SUPABASE_URL                  = https://[seu-projeto].supabase.co
+SUPABASE_PROJECT_ID           = [seu-ref]
+SUPABASE_PUBLISHABLE_KEY      = eyJ... (anon public)
+SUPABASE_SERVICE_ROLE_KEY     = eyJ... (service_role - NAO expor)
 ```
 
 ---
 
-# ❓ FAQ
+## Cap 4 — Variaveis de ambiente
 
-**Posso mudar o nome do produto?** Sim, Passo 4 ou edite `src/config/brand.ts`.
+### 4.1 — Lista completa (18 vars)
 
-**Como adicionar um novo super admin?** Use o PROMPT 3 com o e-mail dele (depois que ele já tiver criado conta).
+Adicione no Vercel: **Settings → Environment Variables**. Marque **Production + Preview + Development** para cada.
 
-**O QR Code do WhatsApp fica caindo.** Já corrigido — só conecte 1x. Se persistir, delete a instância em `/app/conexao` e reconecte.
+#### Supabase (5 vars)
 
-**Como faço backup do banco?** No chat: `"Me dê um dump SQL de todas as tabelas do schema public"`.
+| Var | Origem | Obrigatoria |
+|-----|--------|-------------|
+| `SUPABASE_URL` | Supabase Dashboard → Settings → API | Sim |
+| `SUPABASE_PUBLISHABLE_KEY` | Supabase Dashboard → API (anon) | Sim |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard → API (service_role) | Sim |
+| `SUPABASE_PROJECT_ID` | Ref do projeto (sem https://) | Sim |
+| `POSTGRES_URL_NON_POOLING` | Supabase Dashboard → Settings → Database | Opcional (so build) |
 
-**Posso revender?** Sim, este é o objetivo — você é dono da sua cópia.
+#### VITE_* mirror (3 vars)
+
+| Var | Origem |
+|-----|--------|
+| `VITE_SUPABASE_URL` | Mesmo de `SUPABASE_URL` |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Mesmo de `SUPABASE_PUBLISHABLE_KEY` |
+| `VITE_SUPABASE_PROJECT_ID` | Mesmo de `SUPABASE_PROJECT_ID` |
+
+> **Dica**: `scripts/vercel-build.mjs` ja mapeia automaticamente. Se setou as Supabase vars, pode pular.
+
+#### Google Gemini (1 var)
+
+| Var | Origem | Custo |
+|-----|--------|-------|
+| `GOOGLE_API_KEY` | https://aistudio.google.com/app/apikey | Gratis ate rate limit |
+
+#### Evolution API WhatsApp (2 vars)
+
+| Var | Origem |
+|-----|--------|
+| `EVOLUTION_API_URL` | URL publica da sua instancia Evolution |
+| `EVOLUTION_API_KEY` | Key gerada no painel Evolution |
+
+#### SMTP Titan (6 vars)
+
+| Var | Valor exemplo |
+|-----|---------------|
+| `SMTP_HOST` | `mail.seudominio.com.br` |
+| `SMTP_PORT` | `465` (SSL) ou `587` (TLS) |
+| `SMTP_USER` | `noreply@seudominio.com.br` |
+| `SMTP_PASS` | senha do email |
+| `SMTP_SENDER_EMAIL` | mesmo do SMTP_USER |
+| `SMTP_SENDER_NAME` | `Seu Produto` |
+
+#### Billing webhooks (3 vars, OPCIONAIS)
+
+| Var | Origem |
+|-----|--------|
+| `KIWIFY_WEBHOOK_TOKEN` | Painel Kiwify → Webhooks |
+| `CAKTO_WEBHOOK_TOKEN` | Painel Cakto → Webhooks |
+| `PERFECTPAY_WEBHOOK_TOKEN` | Painel PerfectPay → Webhooks |
+
+#### App config (1 var)
+
+| Var | Valor |
+|-----|-------|
+| `APP_ORIGIN` | `https://[seu-deploy].vercel.app` (sem `/` final) |
+
+### 4.2 — Trigger redeploy
+
+Apos adicionar/modificar env vars, faca redeploy:
+
+```bash
+vercel --prod deploy --yes
+```
+
+Ou no painel: **Deployments → "..." → Redeploy**.
 
 ---
 
-Pronto. Em ~15 min seu SaaS está no ar. 🚀
+## Cap 5 — SMTP Titan
+
+### 5.1 — Criar conta Titan
+
+1. https://titan.email → **Sign Up**
+2. Confirme email
+3. Escolha plano **Free** (500 emails/dia)
+
+### 5.2 — Criar email de envio
+
+1. **Email → Mailboxes → Add Mailbox**
+2. Email: `noreply@seudominio.com.br`
+3. Senha: gere forte e salve
+
+### 5.3 — Configurar DNS (recomendado para evitar SPAM)
+
+No painel do seu dominio (registro.br, Cloudflare, etc.):
+
+**SPF** (TXT):
+```
+v=spf1 include:spf.titan.email ~all
+```
+
+**DKIM** (TXT): valor fornecido pelo Titan em **Email → Domains → DNS Records**
+
+**DMARC** (TXT):
+```
+_dmarc.seudominio.com.br  TXT  "v=DMARC1; p=none; rua=admin@seudominio.com.br"
+```
+
+### 5.4 — Testar SMTP
+
+```bash
+curl https://[seu-deploy].vercel.app/api/debug/otp?to=seu-email@gmail.com
+```
+
+Resposta esperada: `{ "emailTest": { "ok": true } }`. Cheque sua caixa (e SPAM).
+
+---
+
+## Cap 6 — WhatsApp Evolution API
+
+### 6.1 — Contratar VPS
+
+Opcoes baratas (~R$ 30/mes):
+- Hostinger VPS KVM 1 (Brasil)
+- Contabo VPS S (Europa)
+- DigitalOcean Droplet (US)
+
+Requisitos minimos: 2 GB RAM, 1 vCPU, Ubuntu 22.04+
+
+### 6.2 — Instalar Evolution API
+
+SSH no VPS:
+
+```bash
+# Atualizar sistema
+apt update && apt upgrade -y
+
+# Instalar Docker
+curl -fsSL https://get.docker.com | sh
+
+# Rodar Evolution API
+docker run -d \
+  --name evolution \
+  --restart always \
+  -p 8080:8080 \
+  -e AUTHENTICATION_API_KEY=GERE-UMA-KEY-FORTE-AQUI \
+  atendai/evolution-api:v2
+
+# Liberar porta no firewall (se usar ufw)
+ufw allow 8080/tcp
+```
+
+### 6.3 — Configurar HTTPS (obrigatorio para WhatsApp)
+
+Use Caddy (mais simples) ou Nginx + Certbot:
+
+**Caddyfile**:
+```
+evolution.seudominio.com.br {
+  reverse_proxy localhost:8080
+}
+```
+
+```bash
+apt install -y caddy
+# Coloque o Caddyfile em /etc/caddy/Caddyfile
+systemctl reload caddy
+```
+
+### 6.4 — Setar env vars no Vercel
+
+```
+EVOLUTION_API_URL = https://evolution.seudominio.com.br
+EVOLUTION_API_KEY = [a-key-forte-gerada]
+```
+
+### 6.5 — Conectar WhatsApp
+
+1. Acesse seu app: `https://[seu-deploy].vercel.app/entrar`
+2. Faca login
+3. Va em **Conexao** no menu lateral
+4. Clique **Conectar WhatsApp**
+5. Escaneie QR code com WhatsApp Business do cliente
+6. Status muda para "conectado" em <30s
+
+---
+
+## Cap 7 — Billing (Kiwify/Cakto/PerfectPay)
+
+### 7.1 — Escolher provedor
+
+Todos funcionam. **Recomendacao**: Kiwify (mais usado no Brasil, melhor UX).
+
+### 7.2 — Criar produto no provedor
+
+**Exemplo Kiwify:**
+1. Acesse https://kiwify.com.br
+2. **Produtos → Novo produto**
+3. Tipo: Assinatura recorrente
+4. Preco: R$ 149 (Starter) / R$ 297 (Pro) / R$ 597 (Business)
+5. **Anote o product_id** de cada plano
+
+### 7.3 — Configurar webhook no provedor
+
+**Kiwify:**
+1. **Configuracoes → Webhooks**
+2. URL: `https://[seu-deploy].vercel.app/api/public/billing/webhook?provider=kiwify&token=SEU-TOKEN-AQUI`
+3. Eventos: `purchase_approved`, `subscription_canceled`, `refunded`, `chargeback`
+4. **Anote o token** que voce definiu na URL
+
+### 7.4 — Setar env var no Vercel
+
+```
+KIWIFY_WEBHOOK_TOKEN = [o-token-que-voce-definiu]
+```
+
+### 7.5 — Mapear produto → plano
+
+O webhook identifica o plano via `productRef` (product_id). No Supabase SQL Editor:
+
+```sql
+-- Ver planos atuais
+SELECT slug, nome, preco_cents FROM public.plan;
+
+-- Adicionar/atualizar com product_id da Kiwify
+UPDATE public.plan
+SET checkout_url = 'https://pay.kiwify.com.br/[seu-produto-id]'
+WHERE slug = 'starter';
+```
+
+O sistema vincula automaticamente via `findPlanByRef()` (veja `src/routes/api/public/billing/webhook.ts`).
+
+### 7.6 — Testar webhook
+
+```bash
+curl -X POST "https://[seu-deploy].vercel.app/api/public/billing/webhook?provider=kiwify&token=SEU-TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "purchase_approved",
+    "buyer_email": "teste@exemplo.com",
+    "product_id": "abc123",
+    "subscription_id": "sub_test_001"
+  }'
+```
+
+Resposta esperada: `{"ok": true}`. Checar em `/master/empresas` se a empresa foi criada.
+
+---
+
+## Cap 8 — White-label (marca)
+
+Edite **um unico arquivo**: `src/config/brand.ts`.
+
+```typescript
+export const brand = {
+  name: "SeuProduto",                        // <- mude
+  tagline: "Sua IA atende WhatsApp 24h",      // <- mude
+  headline: "SeuProduto — CRM + WhatsApp + IA",
+  description: "SeuProduto: ...",
+  twitterHandle: "@seuuser",
+  primary: "#22C55E",                         // cor principal (HEX)
+  primaryOklch: "0.72 0.18 152",
+  logoIcon: "MessageSquareText",
+};
+```
+
+Apos editar, faca commit + push:
+
+```bash
+git add src/config/brand.ts
+git commit -m "brand: white-label para ClienteX"
+git push origin main
+```
+
+Vercel redeploy automatico (se CI/CD estiver conectado) ou rode `vercel --prod deploy --yes`.
+
+---
+
+## Cap 9 — Primeiro admin master
+
+O trigger `handle_new_user()` no banco automaticamente promove o **primeiro signup** a `super_admin`.
+
+### Procedimento
+
+1. Acesse `https://[seu-deploy].vercel.app/entrar`
+2. Aba **Criar**
+3. Digite **SEU email** (o que sera o admin)
+4. **Enviar codigo** (recebe por email via Titan)
+5. Digite codigo de 6 digitos
+6. Sistema loga e cai em `/master/welcome`
+7. Defina uma senha forte
+
+### Se outra pessoa virou master antes
+
+Promova manualmente via SQL Editor:
+
+```sql
+INSERT INTO public.user_roles (user_id, role)
+SELECT id, 'super_admin'::app_role
+FROM auth.users
+WHERE email = 'SEU@EMAIL.COM'
+ON CONFLICT (user_id, role) DO NOTHING;
+```
+
+---
+
+## Cap 10 — Troubleshooting
+
+### Erro: "SMTP nao configurado"
+
+**Causa**: Variaveis `SMTP_*` faltando na Vercel.
+
+**Solucao**: Adicione as 6 vars (Cap 5) e faca redeploy.
+
+---
+
+### Erro: Email nao chega apos signup
+
+**Causa**: SMTP com problema de autenticacao, porta bloqueada, ou SPF/DKIM faltando.
+
+**Solucao**:
+1. `curl https://[deploy]/api/debug/otp?to=seu@email.com` — mostra erro especifico
+2. Verifique `SMTP_PORT=465` (SSL) ou troque para `587` (TLS)
+3. Verifique SPF/DKIM do dominio
+
+---
+
+### Erro: Webhook retorna 401 "token invalido"
+
+**Causa**: `KIWIFY_WEBHOOK_TOKEN` (ou equivalente) nao foi setado na Vercel, ou esta diferente do que voce configurou no painel do provedor.
+
+**Solucao**:
+1. Compare o token na URL do webhook (painel provedor) com o valor em Vercel
+2. Devem ser **exatamente iguais**
+3. Redeploy apos ajustar
+
+---
+
+### Erro: WhatsApp nao conecta (QR code nao aparece)
+
+**Causa**: Evolution API nao configurada ou nao acessivel.
+
+**Solucao**:
+1. `curl https://[evolution-url]/instance/connectionState/teste -H "apikey: [key]"`
+2. Deve retornar JSON (200)
+3. Se 404/timeout: Evolution nao esta rodando ou URL/Key errados
+
+---
+
+### Erro: IA Gemini retorna 429 (rate limit)
+
+**Causa**: Muitas requisicoes em pouco tempo. Free tier tem limite.
+
+**Solucao**:
+1. Upgrade Gemini API tier (pago) em https://aistudio.google.com
+2. Ou aguarde 1 min e tente novamente
+
+---
+
+### Erro: Build do Vercel falha
+
+**Causa comum 1**: TypeScript error
+**Solucao**: Rode `bun run build` local, leia o erro, corrija.
+
+**Causa comum 2**: Variavel de ambiente faltando em build time
+**Solucao**: Adicione a var no Vercel (lembre que `VITE_*` vars vao pro bundle, precisam existir no build).
+
+**Causa comum 3**: Migracao nova no Supabase mas nao no codigo
+**Solucao**: Sincronize `supabase/migrations/` com o banco rodando.
+
+---
+
+### Realtime nao funciona (mensagens nao aparecem sem F5)
+
+**Causa**: Migration realtime nao aplicada.
+
+**Solucao**:
+```sql
+-- Rodar no SQL Editor do Supabase
+ALTER PUBLICATION supabase_realtime ADD TABLE
+  contacts, conversations, messages, opportunities,
+  whatsapp_instances, users;
+```
+
+---
+
+### Pagina `/entrar` retorna 404
+
+**Causa**: Auth URL config no Supabase nao inclui o dominio.
+
+**Solucao**: Supabase Dashboard → Authentication → URL Configuration → adicionar o dominio.
+
+---
+
+## Suporte self-service
+
+Antes de pedir ajuda:
+1. Releia este MANUAL no capitulo relevante
+2. Cheque `/api/debug/otp` ou logs do Vercel
+3. Pesquise a mensagem de erro no Google
+4. Cole o erro no Claude/ChatGPT com contexto deste MANUAL
+
+Boa sorte com seu deploy!
