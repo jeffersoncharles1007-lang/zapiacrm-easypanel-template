@@ -58,7 +58,10 @@ function EntrarPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [needsPassword, setNeedsPassword] = useState(search.modo === "login");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState("");
+  // Campos do trial gratuito: coletados ANTES do submit para criar company com WhatsApp + nome
+  const [nome, setNome] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
 
   const planInfo = search.plano ? PLAN_LABEL[search.plano] : null;
 
@@ -74,19 +77,35 @@ function EntrarPage() {
       navigate({ to: "/master/painel", replace: true });
       return;
     }
+    // Se o signup criou company + trial, pula checkout e vai pro onboarding
     const { data: cu } = await supabase.from("company_user").select("company_id").eq("user_id", u.user.id).eq("ativo", true).maybeSingle();
-    navigate({ href: cu ? "/app/dashboard" : "/app/checkout", replace: true });
+    if (cu) {
+      const { data: company } = await supabase
+        .from("company")
+        .select("onboarding_completed")
+        .eq("id", cu.company_id)
+        .maybeSingle();
+      navigate({
+        href: company?.onboarding_completed ? "/app/dashboard" : "/app/onboarding",
+        replace: true,
+      });
+    } else {
+      navigate({ to: "/app/checkout", replace: true });
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const v = emailSchema.safeParse(email);
     if (!v.success) return toast.error(v.error.issues[0].message);
-    setLoading(true);
+    if (!needsPassword && nome.trim().length < 2) {
+      return toast.error("Informe seu nome para começar.");
+    }
+    setLoading("signup");
 
     if (needsPassword) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      setLoading(false);
+      setLoading("");
       if (error) return toast.error("Senha incorreta. Tente novamente ou recupere sua senha.");
       toast.success("Bem-vindo de volta!");
       return routeAfterAuth();
@@ -96,6 +115,7 @@ function EntrarPage() {
 
     // Create user via our server route (uses service_role admin API to bypass
     // the Free-tier rate limit on public supabase.auth.signUp).
+    // O endpoint tambem cria company + trial de 3 dias.
     let signupResult: { ok: true; userId: string } | { ok: false; error: string };
     try {
       const res = await fetch("/api/public/signup", {
@@ -104,6 +124,8 @@ function EntrarPage() {
         body: JSON.stringify({
           email,
           password: generated,
+          nome: nome.trim(),
+          whatsapp: whatsapp.trim() || undefined,
           redirectTo: search.plano ? `/app/checkout?plano=${search.plano}` : "/app/dashboard",
         }),
       });
@@ -121,29 +143,30 @@ function EntrarPage() {
       const errMsg = signupResult.error.toLowerCase();
       if (errMsg.includes("already")) {
         setNeedsPassword(true);
-        setLoading(false);
+        setLoading("");
         toast.message("Já existe uma conta com esse e-mail.", { description: "Digite sua senha para continuar." });
         return;
       }
       if (errMsg.includes("not allowed") || errMsg.includes("disabled")) {
         setNeedsPassword(true);
-        setLoading(false);
+        setLoading("");
         toast.message("Cadastros novos estão desativados.", { description: "Se você já tem conta, digite sua senha para entrar." });
         return;
       }
-      setLoading(false);
+      setLoading("");
       return toast.error(signupResult.error);
     }
 
-    // User created server-side. Now establish a client session via password sign-in.
+    // User + company + trial criados. Agora estabelece sessão client-side.
+    setLoading("signin");
     const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password: generated });
-    setLoading(false);
+    setLoading("");
     if (signInErr) {
       toast.success("Conta criada! Faça login para continuar.");
       setNeedsPassword(true);
       return;
     }
-    toast.success("Conta criada! Vamos para o pagamento.");
+    toast.success("Conta criada! Aproveite seus 3 dias grátis.");
     routeAfterAuth();
   }
 
@@ -281,6 +304,38 @@ function EntrarPage() {
                     />
                   </div>
 
+                  {!needsPassword && (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="nome">Seu nome</Label>
+                        <Input
+                          id="nome"
+                          type="text"
+                          value={nome}
+                          onChange={(e) => setNome(e.target.value)}
+                          required
+                          autoComplete="name"
+                          placeholder="Como podemos te chamar?"
+                          className="h-11"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="whatsapp">
+                          WhatsApp <span className="text-muted-foreground text-[11.5px] font-normal">(opcional)</span>
+                        </Label>
+                        <Input
+                          id="whatsapp"
+                          type="tel"
+                          value={whatsapp}
+                          onChange={(e) => setWhatsapp(e.target.value)}
+                          autoComplete="tel"
+                          placeholder="(11) 98765-4321"
+                          className="h-11"
+                        />
+                      </div>
+                    </>
+                  )}
+
                   {needsPassword && (
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
@@ -295,7 +350,7 @@ function EntrarPage() {
 
                   <Button
                     type="submit"
-                    disabled={loading}
+                    disabled={!!loading}
                     size="lg"
                     className="w-full h-12 bg-gradient-brand text-primary-foreground hover:opacity-95 font-semibold text-[14.5px] shadow-[0_8px_24px_-10px_rgba(22,163,74,.6)]"
                   >
