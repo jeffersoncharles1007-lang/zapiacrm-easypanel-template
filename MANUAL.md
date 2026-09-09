@@ -31,12 +31,12 @@
 |-------|------|-------|-----|
 | **Vercel** | vercel.com | Gratis (Hobby) | Hospeda o app |
 | **Supabase** | supabase.com | Gratis (Free) | Banco + auth |
-| **GitHub** | github.com | Gratis | Versionamento |
+| **GitHub** | github.com | Gratis | Fork do template |
 | **Titan Email** | titan.email | Gratis (500 emails/dia) | SMTP transacional |
 | **Google AI Studio** | aistudio.google.com | Gratis (rate limit) | Gemini (IA) |
 | **VPS para Evolution** | hostinger.com.br | ~R$ 30/mes | Hospeda a Evolution API |
 
-> **Sobre Evolution API**: o software em si é **gratis e open source** (https://github.com/EvolutionAPI/evolution-api). O que voce paga é o **VPS** (servidor) onde ela roda 24/7. Cada cliente seu tera seu proprio VPS — nao da pra compartilhar Evolution entre clientes porque WhatsApp Multi-Device so suporta 1 numero por instancia.
+> **Sobre Evolution API**: o software em si e **gratis e open source** (https://github.com/EvolutionAPI/evolution-api). O que voce paga e o **VPS** (servidor) onde ela roda 24/7. Cada cliente seu tera seu proprio VPS — nao da pra compartilhar Evolution entre clientes porque WhatsApp Multi-Device so suporta 1 numero por instancia.
 
 ### Tempo estimado
 
