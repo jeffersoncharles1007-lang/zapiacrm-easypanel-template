@@ -13,7 +13,7 @@
 ZAPIACRM e um SaaS completo de **automacao comercial** que combina:
 
 - **CRM Kanban** (pipeline de leads)
-- **WhatsApp integrado** (via Evolution API)
+- **WhatsApp integrado** (via Evolution API — gratis e open source)
 - **IA generativa** (Gemini) que responde clientes automaticamente
 - **Billing automatico** (Kiwify/Cakto/PerfectPay)
 - **Multi-tenant com RLS** (cada cliente em area isolada)
@@ -75,7 +75,7 @@ Cada cliente = 1 instancia deployada. Cobre R$ 149/mes (Starter), R$ 297/mes (Pr
 |--------|-----------|
 | Frontend + SSR | TanStack Start (React 19 + Vite + Nitro) |
 | Banco + Auth | Supabase (Postgres + RLS) |
-| WhatsApp | Evolution API (self-hosted) |
+| WhatsApp | Evolution API (self-hosted, open source) |
 | IA | Google Gemini |
 | Email | SMTP (Titan, Gmail, etc.) |
 | Pagamento | Kiwify / Cakto / PerfectPay |

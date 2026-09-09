@@ -33,7 +33,7 @@ Use este checklist antes de comecar o deploy. Marque cada item conforme completa
 ### 5. Evolution API (WhatsApp)
 - [ ] VPS contratado (Hostinger, Contabo, DigitalOcean - ~R$ 30/mes)
 - [ ] Docker instalado no VPS
-- [ ] Evolution API rodando (ver MANUAL.md cap 6)
+- [ ] Evolution API rodando (ver MANUAL.md cap 6) — software **gratis e open source** (github.com/EvolutionAPI/evolution-api), o que voce paga e o **VPS** que roda ela 24/7
 - [ ] API key gerada no painel Evolution
 
 ### 6. Webhook de pagamento (opcional mas recomendado)

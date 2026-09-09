@@ -18,12 +18,14 @@
 8. [White-label (marca)](#cap-8--white-label-marca)
 9. [Primeiro admin master](#cap-9--primeiro-admin-master)
 10. [Troubleshooting](#cap-10--troubleshooting)
+11. [FAQ do novo cliente](#cap-11--faq-do-novo-cliente)
+12. [Custos mensais reais](#cap-12--custos-mensais-reais-para-1-instancia)
 
 ---
 
 ## Cap 1 — Pre-deploy (contas + custos)
 
-### Contas que voce precisa criar (todas gratis, exceto VPS Evolution)
+### Contas que voce precisa criar (todas gratis, exceto VPS para Evolution)
 
 | Conta | Site | Custo | Uso |
 |-------|------|-------|-----|
@@ -32,7 +34,9 @@
 | **GitHub** | github.com | Gratis | Versionamento |
 | **Titan Email** | titan.email | Gratis (500 emails/dia) | SMTP transacional |
 | **Google AI Studio** | aistudio.google.com | Gratis (rate limit) | Gemini (IA) |
-| **VPS para Evolution** | hostinger.com.br | ~R$ 30/mes | WhatsApp multi-device |
+| **VPS para Evolution** | hostinger.com.br | ~R$ 30/mes | Hospeda a Evolution API |
+
+> **Sobre Evolution API**: o software em si é **gratis e open source** (https://github.com/EvolutionAPI/evolution-api). O que voce paga é o **VPS** (servidor) onde ela roda 24/7. Cada cliente seu tera seu proprio VPS — nao da pra compartilhar Evolution entre clientes porque WhatsApp Multi-Device so suporta 1 numero por instancia.
 
 ### Tempo estimado
 
@@ -540,6 +544,104 @@ ALTER PUBLICATION supabase_realtime ADD TABLE
 **Causa**: Auth URL config no Supabase nao inclui o dominio.
 
 **Solucao**: Supabase Dashboard → Authentication → URL Configuration → adicionar o dominio.
+
+---
+
+---
+
+## Cap 11 — FAQ do novo cliente
+
+### "Posso compartilhar minha Evolution API com outros clientes?"
+
+**Nao.** A Evolution API roda1 instancia WhatsApp Multi-Device por VPS. Cada cliente seu tera seu **proprio WhatsApp** (ou seja, cada cliente tem um numero diferente — nao faz sentido compartilhar). Cada cliente precisa do VPS dele.
+
+### "Posso usar meu Supabase para varios clientes?"
+
+**Nao.** Cada cliente tem o **proprio projeto Supabase** com seu proprio banco de dados. O RLS (Row Level Security) garante isolamento, mas na pratica cada deploy aponta para um Supabase separado.
+
+### "Quanto custa rodar1 instancia minha?"
+
+Ver **Cap 12 — Custos mensais reais** abaixo.
+
+### "Posso hospedar em outro lugar que nao Vercel?"
+
+**Sim.** O codigo roda em qualquer host que suporte Node.js + Nitro:
+- **Easypanel / Coolify** (VPS proprio, ~R$ 30-50/mes)
+- **Railway** (free tier limitado)
+- **Fly.io** (free tier limitado)
+- **ProximoML / Render** (com caveats)
+
+Vercel Hobby tem 100GB bandwidth/mes (sobrevive ate 50 clientes). Se passar disso, faca upgrade para Vercel Pro ou migre para Easypanel.
+
+### "Voces dao suporte?"
+
+**Nao.** Este produto e **self-service**. Suporte human nao esta incluso no preco do codigo-fonte.
+
+Recursos:
+- Este `MANUAL.md` cobre 95% dos casos
+- `/api/debug/otp` para debug SMTP
+- Logs do Vercel + Supabase
+- Use Claude/ChatGPT para debugar (cole o erro + contexto deste MANUAL)
+
+### "Preciso de programador para deploy?"
+
+**Nao obrigatorio.** O fluxo e:
+1. Fork no GitHub (UI)
+2. Import na Vercel (UI)
+3. Setar env vars (UI, copy/paste)
+4. Rodar SQL no Supabase (UI, copy/paste)
+5. SSH no VPS para Docker (basico)
+
+Tempo medio: 2-4h para quem nunca fez. Se travar, contrate um freelancer pontual (R$ 200-500).
+
+### "Tem NF / recibo para comprar de voces?"
+
+Depende do vendedor. Se voce compra de **Jefferson Charles**, solicite NF via email. Se compra via marketplace (Hotmart, Kiwify), a plataforma gera recibo automatico.
+
+### "Tenho direito a updates gratis do codigo?"
+
+**Sim**, enquanto o repositorio for publico. Voce pode fazer `git pull upstream main` no seu fork para receber updates do template original. Cuidado: pode gerar conflitos se voce customizou muito.
+
+---
+
+## Cap 12 — Custos mensais reais (para 1 instancia)
+
+Esta e a conta que **voce (cliente)** precisa pagar todo mes para manter1 instancia do ZAPIACRM rodando:
+
+| Item | Free tier pago? | Estimativa |
+|------|-----------------|------------|
+| Vercel Hobby | Gratis | R$ 0 (ate 100GB bandwidth) |
+| Supabase Free | Gratis | R$ 0 (ate 500MB database, ~10-20 clientes finais) |
+| Titan Email | Gratis | R$ 0 (ate 500 emails/dia) |
+| Google Gemini | Gratis | R$ 0 (ate rate limit, geralmente sobra) |
+| **VPS Evolution** (DigitalOcean / Hostinger / Contabo) | ~R$ 30/mes | **R$ 30-50** |
+| Dominio proprio (opcional, mas recomendado) | Anual | ~R$ 3/mes (R$ 30-50/ano) |
+| **TOTAL MINIMO** | | **~R$ 30-50/mes** |
+
+### Quando sai do free tier?
+
+- **Vercel**: > 100GB bandwidth/mes (improvavel com < 50 clientes)
+- **Supabase**: > 500MB database (geralmente so depois de 20+ clientes ativos)
+- **Titan**: > 500 emails/dia (so se tiver alto volume de cadastro)
+- **Gemini**: requests demais (raro no free tier; upgrade para tier pago ~R$ 50/mes)
+
+### Upgrade path
+
+Se voce crescer alem do free tier:
+- **Vercel Pro**: $20/mes (~R$ 110) — bandwidth ilimitado
+- **Supabase Pro**: $25/mes (~R$ 140) — 8GB database
+- **Gemini API tier 1**: ~$30/mes — 1000 req/min
+- **Total upgrade**: ~R$ 280/mes (so se voce tiver > 50 clientes ativos)
+
+### Comparacao com concorrentes SaaS
+
+| Solucao SaaS | Custo/cliente/mes | ZAPIACRM self-hosted (seu) |
+|---|---|---|
+| Chatwoot | $19 (~R$ 100) | ~R$ 1-2/cliente (custo proporcional) |
+| Pipedrive | $29 (~R$ 160) | R$ 0 (sem per-seat) |
+| HubSpot Free | Gratis com limitacoes | **R$ 0 completo** |
+| HubSpot Pro | $890/mes | N/A |
+| ZAPIACRM (sua revenda) | R$ 149-597 (seu preco) | R$ 30 fixo/mes (seu custo) |
 
 ---
 
