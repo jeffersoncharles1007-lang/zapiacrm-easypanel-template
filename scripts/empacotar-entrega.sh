@@ -141,6 +141,8 @@ ESTE PACOTE INCLUI:
   codigo-fonte/         Codigo completo do sistema (SEM node_modules)
   README.md             Visao geral comercial (p/ decidir se vai usar)
   MANUAL.md             TUTORIAL PASSO-A-PASSO (12 capitulos, abra este!)
+  MANUAL_INSTALACAO.pdf Manual tecnico em PDF (28 paginas, visual)
+  MANUAL_ZAPIACRM.pdf   Manual completo em PDF (versao visual)
   CHECKLIST-PRE-DEPLOY  O que preparar ANTES (6 contas, todas gratis)
   CHECKLIST-POS-DEPLOY  O que validar DEPOIS (11 testes)
   SETUP_REPLICAVEL.sql  Script para rodar 1x no Supabase novo
@@ -154,6 +156,7 @@ COMO COMECAR (em 4 passos):
   1. Abra README.md para entender o que e o produto
   2. Abra CHECKLIST-PRE-DEPLOY.md para criar as 6 contas
   3. Abra MANUAL.md - siga cap 2 ate cap 9 na ordem
+     (ou MANUAL_INSTALACAO.pdf para versao visual)
   4. Use CHECKLIST-POS-DEPLOY.md para validar
 
 DEPOIS DO DEPLOY:

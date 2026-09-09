@@ -219,6 +219,51 @@ Adicione no Vercel: **Settings → Environment Variables**. Marque **Production 
 |-----|-------|
 | `APP_ORIGIN` | `https://[seu-deploy].vercel.app` (sem `/` final) |
 
+### 4.1.1 — Lista de env vars para copiar/colar
+
+Bloco pronto pra colar no painel da Vercel (Settings → Environment Variables). Substitua os placeholders pelos seus valores reais:
+
+```bash
+# === SUPABASE (5 vars) ===
+SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_PUBLISHABLE_KEY=eyJhb_publishable_xxxxx
+SUPABASE_SERVICE_ROLE_KEY=eyJhb_secret_xxxxx
+SUPABASE_PROJECT_ID=xxxxxxxxxxxxxx
+POSTGRES_URL_NON_POOLING=postgresql://postgres.xxx:[senha]@aws-1-sa-east-1.pooler.supabase.com:6543/postgres
+
+# === VITE_* mirror (3 vars - build-time) ===
+VITE_SUPABASE_URL=https://xxxxx.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=eyJhb_publishable_xxxxx
+VITE_SUPABASE_PROJECT_ID=xxxxxxxxxxxxxx
+
+# === GOOGLE GEMINI (1 var) ===
+GOOGLE_API_KEY=AIzaSy_xxxxxxxxxxxxxxxxxxxxxxxx
+
+# === EVOLUTION API (2 vars) ===
+EVOLUTION_API_URL=https://evolution-api.exemplo.com
+EVOLUTION_API_KEY=jFqxYx82V61ueUenl5aihcMpa6GSNwLF
+
+# === SMTP (6 vars) ===
+SMTP_HOST=mail.seudominio.com.br
+SMTP_PORT=465
+SMTP_USER=noreply@seudominio.com.br
+SMTP_PASS=senha-do-email
+SMTP_SENDER_EMAIL=noreply@seudominio.com.br
+SMTP_SENDER_NAME=Seu Produto
+
+# === BILLING / WEBHOOKS (3 vars - OPCIONAIS) ===
+KIWIFY_WEBHOOK_TOKEN=
+CAKTO_WEBHOOK_TOKEN=
+PERFECTPAY_WEBHOOK_TOKEN=
+
+# === APP CONFIG (1 var) ===
+APP_ORIGIN=https://seu-projeto.vercel.app
+```
+
+> **Nota sobre EVOLUTION_API_URL**: se voce NAO tem VPS proprio com Evolution rodando, deixe esta var vazia. A integracao WhatsApp fica desativada ate voce configurar (Cap 6).
+
+> **Nota sobre BILLING**: as 3 tokens de webhook sao OPCIONAIS. Deixe vazias se voce NAO for cobrar clientes pelo sistema.
+
 ### 4.2 — Trigger redeploy
 
 Apos adicionar/modificar env vars, faca redeploy:
