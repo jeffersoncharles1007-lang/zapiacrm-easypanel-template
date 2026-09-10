@@ -79,11 +79,12 @@ export const Route = createFileRoute("/api/public/signup")({
         if (password.length < 8 || password.length > 128) {
           return json({ error: "invalid_password" }, 400);
         }
-        if (nomeRaw.length > 120) {
+        if (nomeRaw.length < 2 || nomeRaw.length > 120) {
           return json({ error: "invalid_nome" }, 400);
         }
-        // whatsapp é opcional, mas se enviado, validamos formato básico (10-15 dígitos)
-        if (whatsappRaw && !/^[0-9+\-\s()]{10,20}$/.test(whatsappRaw)) {
+        // whatsapp e obrigatorio, mas se enviado, validamos formato basico (10-15 digitos)
+        const whatsappDigits = whatsappRaw.replace(/\D/g, "");
+        if (whatsappDigits.length < 10 || whatsappDigits.length > 15) {
           return json({ error: "invalid_whatsapp" }, 400);
         }
 

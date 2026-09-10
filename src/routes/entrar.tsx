@@ -102,6 +102,12 @@ function EntrarPage() {
     if (!isLogin && nome.trim().length < 2) {
       return toast.error("Informe seu nome para começar.");
     }
+    if (!isLogin) {
+      const wppDigits = whatsapp.replace(/\D/g, "");
+      if (wppDigits.length < 10 || wppDigits.length > 15) {
+        return toast.error("Informe um WhatsApp válido (com DDD).");
+      }
+    }
     setLoading("signup");
 
     if (isLogin) {
@@ -348,13 +354,14 @@ function EntrarPage() {
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="whatsapp">
-                          WhatsApp <span className="text-muted-foreground text-[11.5px] font-normal">(opcional)</span>
+                          WhatsApp <span className="text-destructive">*</span>
                         </Label>
                         <Input
                           id="whatsapp"
                           type="tel"
                           value={whatsapp}
                           onChange={(e) => setWhatsapp(e.target.value)}
+                          required
                           autoComplete="tel"
                           placeholder="(11) 98765-4321"
                           className="h-11"
