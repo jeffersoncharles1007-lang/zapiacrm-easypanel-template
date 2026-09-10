@@ -57,7 +57,8 @@ function EntrarPage() {
   const search = useSearch({ from: "/entrar" }) as Search;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [needsPassword, setNeedsPassword] = useState(search.modo === "login");
+  const [mode, setMode] = useState<"signup" | "login">(search.modo === "login" ? "login" : "signup");
+  const isLogin = mode === "login";
   const [loading, setLoading] = useState("");
   // Campos do trial gratuito: coletados ANTES do submit para criar company com WhatsApp + nome
   const [nome, setNome] = useState("");
@@ -98,12 +99,12 @@ function EntrarPage() {
     e.preventDefault();
     const v = emailSchema.safeParse(email);
     if (!v.success) return toast.error(v.error.issues[0].message);
-    if (!needsPassword && nome.trim().length < 2) {
+    if (!isLogin && nome.trim().length < 2) {
       return toast.error("Informe seu nome para começar.");
     }
     setLoading("signup");
 
-    if (needsPassword) {
+    if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       setLoading("");
       if (error) return toast.error("Senha incorreta. Tente novamente ou recupere sua senha.");
@@ -142,13 +143,13 @@ function EntrarPage() {
     if (!signupResult.ok) {
       const errMsg = signupResult.error.toLowerCase();
       if (errMsg.includes("already")) {
-        setNeedsPassword(true);
+        setMode("login");
         setLoading("");
         toast.message("Já existe uma conta com esse e-mail.", { description: "Digite sua senha para continuar." });
         return;
       }
       if (errMsg.includes("not allowed") || errMsg.includes("disabled")) {
-        setNeedsPassword(true);
+        setMode("login");
         setLoading("");
         toast.message("Cadastros novos estão desativados.", { description: "Se você já tem conta, digite sua senha para entrar." });
         return;
@@ -163,7 +164,7 @@ function EntrarPage() {
     setLoading("");
     if (signInErr) {
       toast.success("Conta criada! Faça login para continuar.");
-      setNeedsPassword(true);
+      setMode("login");
       return;
     }
     toast.success("Conta criada! Aproveite seus 3 dias grátis.");
@@ -275,16 +276,42 @@ function EntrarPage() {
                   </div>
                 )}
 
+                {/* Tabs: Criar conta | Já tenho conta */}
+                <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-[color:var(--panel-2)] border border-[color:var(--hairline)] mb-5">
+                  <button
+                    type="button"
+                    onClick={() => setMode("signup")}
+                    className={`h-10 rounded-lg text-[13px] font-semibold transition-all ${
+                      !isLogin
+                        ? "bg-[color:var(--brand)] text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Criar conta
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode("login")}
+                    className={`h-10 rounded-lg text-[13px] font-semibold transition-all ${
+                      isLogin
+                        ? "bg-[color:var(--brand)] text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Já tenho conta
+                  </button>
+                </div>
+
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[color:var(--brand-soft)] border border-[color:var(--brand)]/20 text-[11px] font-semibold text-[color:var(--brand-text)] mb-3">
                   <span className="size-1.5 rounded-full bg-[color:var(--brand)] dot-pulse" />
-                  {needsPassword ? "Acesso à conta" : "Cadastro em 1 clique"}
+                  {isLogin ? "Acesso à conta" : "Cadastro em 1 clique"}
                 </div>
 
                 <h1 className="font-display text-[26px] sm:text-[28px] font-extrabold leading-tight tracking-tight">
-                  {needsPassword ? "Bem-vindo de volta" : "Comece em 1 clique"}
+                  {isLogin ? "Bem-vindo de volta" : "Comece em 1 clique"}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1.5 mb-6">
-                  {needsPassword
+                  {isLogin
                     ? "Você já tem conta — informe sua senha pra continuar."
                     : "Só precisamos do seu e-mail. Criamos a conta na hora e te levamos pro próximo passo."}
                 </p>
@@ -296,7 +323,7 @@ function EntrarPage() {
                       id="email"
                       type="email"
                       value={email}
-                      onChange={(e) => { setEmail(e.target.value); if (needsPassword) setNeedsPassword(false); }}
+                      onChange={(e) => setEmail(e.target.value)}
                       required
                       autoFocus
                       placeholder="voce@empresa.com"
@@ -304,7 +331,7 @@ function EntrarPage() {
                     />
                   </div>
 
-                  {!needsPassword && (
+                  {!isLogin && (
                     <>
                       <div className="space-y-1.5">
                         <Label htmlFor="nome">Seu nome</Label>
@@ -336,7 +363,7 @@ function EntrarPage() {
                     </>
                   )}
 
-                  {needsPassword && (
+                  {isLogin && (
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="pwd">Senha</Label>
@@ -355,14 +382,22 @@ function EntrarPage() {
                     className="w-full h-12 bg-gradient-brand text-primary-foreground hover:opacity-95 font-semibold text-[14.5px] shadow-[0_8px_24px_-10px_rgba(22,163,74,.6)]"
                   >
                     {loading && <Loader2 className="size-4 mr-2 animate-spin" />}
-                    {needsPassword ? "Entrar e continuar" : planInfo ? "Continuar para o pagamento" : "Criar conta grátis"}
+                    {isLogin ? "Entrar e continuar" : planInfo ? "Continuar para o pagamento" : "Criar conta grátis"}
                   </Button>
 
-                  {!needsPassword && (
+                  {!isLogin && (
                     <p className="text-[11.5px] text-muted-foreground text-center pt-1 leading-relaxed">
                       Sem cartão para começar os <span className="font-semibold text-foreground">3 dias grátis</span>. Cancele quando quiser.
                     </p>
                   )}
+
+                  <p className="text-[11.5px] text-muted-foreground text-center pt-2">
+                    {isLogin ? (
+                      <>Não tem conta? <button type="button" onClick={() => setMode("signup")} className="font-semibold text-[color:var(--brand-text)] hover:underline">Criar agora</button></>
+                    ) : (
+                      <>Já tem conta? <button type="button" onClick={() => setMode("login")} className="font-semibold text-[color:var(--brand-text)] hover:underline">Entrar</button></>
+                    )}
+                  </p>
                 </form>
               </div>
             </div>
