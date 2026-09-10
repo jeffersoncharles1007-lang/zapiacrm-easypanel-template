@@ -223,8 +223,11 @@ export const Route = createFileRoute("/api/public/signup")({
           });
         }
 
-        // 7. Envia email de boas-vindas (fire-and-forget)
-        //    Mesmo padrao: se falhar, NAO bloqueia o signup. Logamos.
+        // 7. Envia email de boas-vindas (sincrono)
+        //    Diferente do webhook (fire-and-forget), o email usa await
+        //    para garantir que Vercel Function NAO desligue antes do envio.
+        //    SMTP Titan costuma responder em <2s. Em caso de erro, logamos
+        //    mas NAO bloqueamos o signup.
         try {
           const { sendEmail, welcomeTrialEmail } = await import("@/lib/email.server");
           const appUrl = process.env.APP_ORIGIN ?? "https://zapiacrm.vercel.app";
@@ -233,20 +236,19 @@ export const Route = createFileRoute("/api/public/signup")({
             trialAte: trialAte,
             appUrl,
           });
-          sendEmail({
+          const emailRes = await sendEmail({
             to: data.user.email ?? email,
             subject: template.subject,
             html: template.html,
             text: template.text,
-          }).then((res) => {
-            if (!res.ok) {
-              console.error("[signup] welcome email failed:", res.error);
-            } else {
-              console.log("[signup] welcome email sent to", email);
-            }
           });
+          if (!emailRes.ok) {
+            console.error("[signup] welcome email failed:", emailRes.error);
+          } else {
+            console.log("[signup] welcome email sent to", email);
+          }
         } catch (err) {
-          console.error("[signup] email module import failed:", (err as Error).message);
+          console.error("[signup] email module/import failed:", (err as Error).message);
         }
 
         return json(
