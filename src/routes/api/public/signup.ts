@@ -116,13 +116,15 @@ export const Route = createFileRoute("/api/public/signup")({
         const userId = data.user.id;
 
         // 3. Cria profile com nome + whatsapp (opcional)
-        //    O trigger handle_new_user() no banco pode já ter criado profile.
-        //    Usamos upsert para garantir.
+        //    O trigger handle_new_user() no banco pode ja ter criado profile.
+        //    Usamos upsert para garantir. Colunas reais: nome, nome_completo,
+        //    telefone (NAO full_name / whatsapp).
         const profileData: Record<string, unknown> = {
           user_id: userId,
           email,
-          full_name: nomeRaw || null,
-          whatsapp: whatsappRaw || null,
+          nome: nomeRaw || null,
+          nome_completo: nomeRaw || null,
+          telefone: whatsappRaw || null,
         };
         const { error: profileErr } = await supabaseAdmin
           .from("profiles")
