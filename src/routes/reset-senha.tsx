@@ -27,7 +27,7 @@ function Page() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (pwd.length < 6) return toast.error("Senha precisa ter pelo menos 6 caracteres.");
+    if (pwd.length < 8) return toast.error("Senha precisa ter pelo menos 8 caracteres.");
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password: pwd });
     setLoading(false);
