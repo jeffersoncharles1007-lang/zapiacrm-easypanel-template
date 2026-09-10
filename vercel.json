@@ -1,5 +1,11 @@
 {
   "buildCommand": "bun run build:vercel",
   "framework": null,
-  "installCommand": "bun install --frozen-lockfile"
+  "installCommand": "bun install --frozen-lockfile",
+  "crons": [
+    {
+      "path": "/api/cron/keepalive",
+      "schedule": "0 12 * * *"
+    }
+  ]
 }
