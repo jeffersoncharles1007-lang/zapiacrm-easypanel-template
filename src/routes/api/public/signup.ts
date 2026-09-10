@@ -221,6 +221,32 @@ export const Route = createFileRoute("/api/public/signup")({
           });
         }
 
+        // 7. Envia email de boas-vindas (fire-and-forget)
+        //    Mesmo padrao: se falhar, NAO bloqueia o signup. Logamos.
+        try {
+          const { sendEmail, welcomeTrialEmail } = await import("@/lib/email.server");
+          const appUrl = process.env.APP_ORIGIN ?? "https://zapiacrm.vercel.app";
+          const template = welcomeTrialEmail({
+            nome: nomeRaw || "Cliente",
+            trialAte: trialAte,
+            appUrl,
+          });
+          sendEmail({
+            to: data.user.email ?? email,
+            subject: template.subject,
+            html: template.html,
+            text: template.text,
+          }).then((res) => {
+            if (!res.ok) {
+              console.error("[signup] welcome email failed:", res.error);
+            } else {
+              console.log("[signup] welcome email sent to", email);
+            }
+          });
+        } catch (err) {
+          console.error("[signup] email module import failed:", (err as Error).message);
+        }
+
         return json(
           {
             user_id: userId,
