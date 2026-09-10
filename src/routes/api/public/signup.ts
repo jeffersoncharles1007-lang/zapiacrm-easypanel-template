@@ -192,6 +192,34 @@ export const Route = createFileRoute("/api/public/signup")({
           );
         }
 
+        // 6. Dispara webhook fire-and-forget (LeadConnector / GoHighLevel)
+        //    NAO bloqueia a resposta do signup - se webhook falhar, logamos
+        //    mas o usuario ja criou conta normalmente.
+        const webhookUrl = process.env.LEAD_WEBHOOK_URL;
+        if (webhookUrl) {
+          const payload = {
+            event: "trial_started",
+            timestamp: new Date().toISOString(),
+            user_id: userId,
+            email: data.user.email,
+            nome: nomeRaw || null,
+            whatsapp: whatsappRaw || null,
+            company_id: companyId,
+            company_name: companyName,
+            plan_slug: planSlug,
+            trial_ate: trialAte,
+            source: "zapiacrm-signup-api",
+          };
+          // fire-and-forget (sem await) - resposta do signup nao espera
+          fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }).catch((err) => {
+            console.error("[signup] lead webhook failed:", webhookUrl, err?.message ?? err);
+          });
+        }
+
         return json(
           {
             user_id: userId,
